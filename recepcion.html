@@ -1,0 +1,1434 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#141213">
+  <title>Recepción | Fussion Fitness</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    /* ============================================================
+       TOKENS DE DISEÑO — mismos valores que index.html y login.html
+       ============================================================ */
+    :root {
+      --fondo: #141213;
+      --superficie: #1b1819;
+      --elevada: #241f21;
+      --linea: #2f292b;
+      --texto: #f3f0ef;
+      --texto-2: #a39a9c;
+      --texto-3: #736b6d;
+      --verde: #11803e;
+      --verde-hover: #169a4b;
+      --verde-texto: #3ddc84;
+      --peligro: #cc0000;
+      --peligro-hover: #e00b0b;
+      --peligro-texto: #ff5a52;
+      --al-dia: #38bdf8;
+      --al-dia-texto: #7dd3fc;
+
+      --ok: #38bdf8;
+      --ok-fondo: rgba(56, 189, 248, 0.1);
+      --alerta: #f5b544;
+      --alerta-fondo: rgba(245, 181, 68, 0.1);
+      --deuda: #ff5a52;
+      --deuda-fondo: rgba(204, 0, 0, 0.14);
+      --neutro: #a39a9c;
+      --neutro-fondo: rgba(255, 255, 255, 0.05);
+
+      --f-titulo: 'Barlow Condensed', 'Arial Narrow', 'Roboto Condensed', sans-serif;
+      --f-texto: 'Barlow', 'Segoe UI', system-ui, sans-serif;
+
+      --radio: 6px;
+      --transicion: 160ms ease;
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body { height: 100%; }
+
+    body {
+      font-family: var(--f-texto);
+      font-size: 16px;
+      line-height: 1.5;
+      color: var(--texto);
+      -webkit-font-smoothing: antialiased;
+      background:
+        radial-gradient(ellipse 60% 50% at 50% 30%, rgba(0, 176, 72, 0.16) 0%, rgba(0, 176, 72, 0.04) 45%, transparent 75%),
+        var(--fondo);
+    }
+
+    /* Textura de líneas diagonales, como un piso de goma */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(-60deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 14px);
+      -webkit-mask-image: radial-gradient(ellipse 60% 55% at 50% 30%, #000 0%, transparent 75%);
+              mask-image: radial-gradient(ellipse 60% 55% at 50% 30%, #000 0%, transparent 75%);
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+
+    :focus-visible {
+      outline: 2px solid var(--verde-texto);
+      outline-offset: 2px;
+    }
+
+    .icono {
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.75;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .oculto { display: none !important; }
+
+    /* ============================================================
+       ESTRUCTURA: una sola columna centrada
+       ============================================================ */
+    .pagina {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1.5rem 1.25rem 0;
+      overflow-x: clip; /* la franja roja del pie no genera scroll lateral */
+    }
+
+    /* Reloj arriba a la derecha */
+    .reloj {
+      position: fixed;
+      top: 1.25rem;
+      right: 1.75rem;
+      text-align: right;
+    }
+
+    .reloj-hora {
+      font-family: var(--f-titulo);
+      font-weight: 600;
+      font-size: 2.6rem;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .reloj-fecha {
+      font-size: 0.95rem;
+      color: var(--texto-2);
+      margin-top: 0.2rem;
+    }
+
+    /* ---------- Marca ---------- */
+    .marca {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      margin-top: auto;
+    }
+
+    .marca-logo {
+      width: clamp(110px, 17vh, 170px);
+      aspect-ratio: 1;
+      object-fit: contain;
+      filter: drop-shadow(0 0 30px rgba(0, 176, 72, 0.55));
+      clip-path: inset(0 0 7% 0); /* recorta el texto que trae el logo abajo */
+      transition: width 250ms ease;
+    }
+
+    .marca-nombre {
+      font-family: var(--f-titulo);
+      font-weight: 700;
+      font-size: min(clamp(2.4rem, 6vh, 3.4rem), 9vw);
+      line-height: 0.9;
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+      color: var(--verde-texto);
+      margin-top: 0.25rem;
+    }
+
+    .marca-lugar {
+      font-family: var(--f-titulo);
+      font-weight: 500;
+      font-size: 1.1rem;
+      letter-spacing: 0.3em;
+      padding-left: 0.3em;
+      color: var(--texto-2);
+      margin-top: 0.35rem;
+    }
+
+    /* Con el resultado a la vista, la marca se achica para dar lugar */
+    body.con-resultado .marca-logo { width: 72px; }
+    body.con-resultado .marca-nombre { font-size: 1.9rem; }
+    body.con-resultado .marca-lugar { display: none; }
+
+    /* ---------- Zona central (formulario o resultado) ---------- */
+    .zona {
+      width: 100%;
+      max-width: 560px;
+      margin: 2rem 0 auto;
+    }
+
+    /* Formulario de DNI */
+    .form-dni { text-align: center; }
+
+    .form-dni label {
+      display: block;
+      font-family: var(--f-titulo);
+      font-weight: 700;
+      font-size: 2.2rem;
+      line-height: 1;
+      margin-bottom: 1.1rem;
+    }
+
+    .campo-dni {
+      display: flex;
+      gap: 0.6rem;
+      max-width: 460px;
+      margin: 0 auto;
+    }
+
+    .campo-dni input {
+      flex: 1;
+      min-width: 0;
+      height: 68px;
+      padding: 0 1rem;
+      font-family: var(--f-titulo);
+      font-weight: 600;
+      font-size: 2.4rem;
+      letter-spacing: 0.08em;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+      color: var(--texto);
+      background: var(--superficie);
+      border: 1px solid var(--linea);
+      border-radius: var(--radio);
+      outline: none;
+      transition: border-color var(--transicion), background var(--transicion);
+    }
+
+    .campo-dni input::placeholder {
+      font-family: var(--f-texto);
+      font-weight: 400;
+      font-size: 1.1rem;
+      letter-spacing: 0;
+      color: var(--texto-3);
+    }
+
+    .campo-dni input:focus {
+      border-color: var(--verde-texto);
+      background: var(--elevada);
+    }
+
+    .campo-dni input.sacudir { animation: sacudir 320ms ease; }
+
+    @keyframes sacudir {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-8px); }
+      75% { transform: translateX(8px); }
+    }
+
+    .btn-ingresar {
+      height: 68px;
+      padding: 0 1.75rem;
+      border-radius: var(--radio);
+      background: var(--verde);
+      color: #fff;
+      font-family: var(--f-titulo);
+      font-weight: 600;
+      font-size: 1.5rem;
+      transition: background var(--transicion);
+    }
+
+    .btn-ingresar:hover { background: var(--verde-hover); }
+
+    .btn-ingresar:disabled {
+      background: var(--elevada);
+      color: var(--texto-3);
+      cursor: wait;
+    }
+
+    .ayuda {
+      margin-top: 0.9rem;
+      color: var(--texto-3);
+      font-size: 0.95rem;
+    }
+
+    /* ---------- Pie ---------- */
+    .pie {
+      position: relative;
+      width: 100vw;
+      margin-top: 2rem;
+      padding: 0 1.75rem 1.6rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .lema {
+      font-family: var(--f-titulo);
+      font-weight: 500;
+      font-size: 1.35rem;
+      letter-spacing: 0.02em;
+      color: var(--texto-2);
+    }
+
+    .pie::after {
+      content: '';
+      position: absolute;
+      left: -5%;
+      right: -5%;
+      bottom: 0;
+      height: 6px;
+      background: var(--verde);
+      transform: skewY(-0.8deg);
+      transform-origin: left;
+    }
+
+    .acceso-personal {
+      position: absolute;
+      right: 1.5rem;
+      bottom: 1.3rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.8rem;
+      color: var(--texto-3);
+      text-decoration: none;
+      padding: 0.4rem;
+      transition: color var(--transicion);
+    }
+
+    .acceso-personal:hover { color: var(--texto-2); }
+
+    /* ============================================================
+       RESULTADO DEL SOCIO
+       ============================================================ */
+    .resultado { animation: entrar 260ms ease both; }
+
+    @keyframes entrar {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .confirmacion {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 600;
+      color: var(--ok);
+    }
+
+    .confirmacion .icono { width: 22px; height: 22px; stroke-width: 2.25; }
+
+    .hola {
+      font-family: var(--f-titulo);
+      font-weight: 700;
+      font-size: clamp(2.6rem, 7vw, 3.8rem);
+      line-height: 0.95;
+      margin: 0.3rem 0 1rem;
+      overflow-wrap: anywhere;
+    }
+
+    .estado {
+      border-radius: var(--radio);
+      border-left: 5px solid currentColor;
+      padding: 1rem 1.35rem;
+    }
+
+    .estado.ok      { color: var(--ok);     background: var(--ok-fondo); }
+    .estado.alerta  { color: var(--alerta); background: var(--alerta-fondo); }
+    .estado.deuda   { color: var(--deuda);  background: var(--deuda-fondo); }
+    .estado.neutro  { color: var(--neutro); background: var(--neutro-fondo); }
+
+    .estado-etiqueta {
+      font-family: var(--f-titulo);
+      font-weight: 700;
+      font-size: clamp(2rem, 5vw, 2.6rem);
+      line-height: 1;
+      letter-spacing: 0.02em;
+    }
+
+    .estado-detalle {
+      color: var(--texto);
+      font-size: 1.05rem;
+      margin-top: 0.3rem;
+    }
+
+    .datos { margin-top: 0.75rem; }
+
+    .dato {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 1rem;
+      padding: 0.55rem 0;
+      border-bottom: 1px solid var(--linea);
+      font-size: 1.05rem;
+    }
+
+    .dato-nombre { color: var(--texto-2); }
+    .dato-valor { font-weight: 600; text-align: right; }
+
+    .dato.total { border-bottom: none; padding-top: 0.8rem; }
+    .dato.total .dato-nombre { color: var(--texto); font-weight: 600; }
+
+    .dato.total .dato-valor {
+      font-family: var(--f-titulo);
+      font-size: 1.9rem;
+      line-height: 1;
+      color: var(--deuda);
+    }
+
+    .nota {
+      margin-top: 0.6rem;
+      color: var(--texto-2);
+    }
+
+    .aviso-ingreso {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-top: 1rem;
+      padding: 0.7rem 1rem;
+      border-radius: var(--radio);
+      background: var(--neutro-fondo);
+      color: var(--texto-2);
+    }
+
+    .aviso-ingreso .icono { width: 20px; height: 20px; }
+
+    .mensaje-titulo {
+      font-family: var(--f-titulo);
+      font-weight: 700;
+      font-size: clamp(2.2rem, 6vw, 3rem);
+      line-height: 1;
+      margin-bottom: 0.6rem;
+      text-align: center;
+    }
+
+    .mensaje-texto {
+      font-size: 1.1rem;
+      color: var(--texto-2);
+      text-align: center;
+      max-width: 44ch;
+      margin: 0 auto;
+    }
+
+    .btn-listo {
+      position: relative;
+      overflow: hidden;
+      width: 100%;
+      height: 56px;
+      margin-top: 1.25rem;
+      border-radius: var(--radio);
+      background: var(--elevada);
+      border: 1px solid var(--linea);
+      font-family: var(--f-titulo);
+      font-weight: 600;
+      font-size: 1.4rem;
+      transition: background var(--transicion);
+    }
+
+    .btn-listo:hover { background: #2c2628; }
+
+    .btn-rutina {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      width: 100%;
+      height: 56px;
+      margin-top: 1.25rem;
+      border-radius: var(--radio);
+      background: var(--verde);
+      color: #fff;
+      text-decoration: none;
+      font-family: var(--f-titulo);
+      font-weight: 600;
+      font-size: 1.4rem;
+      transition: background var(--transicion);
+    }
+
+    .btn-rutina:hover { background: var(--verde-hover); }
+    .btn-rutina + .btn-listo { margin-top: 0.6rem; }
+    .btn-listo-texto { position: relative; z-index: 1; }
+
+    .cuenta {
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      height: 3px;
+      width: 100%;
+      background: var(--verde);
+      transform-origin: left;
+    }
+
+    .cuenta.corriendo { animation: descontar linear forwards; }
+
+    @keyframes descontar {
+      from { transform: scaleX(1); }
+      to   { transform: scaleX(0); }
+    }
+
+    .siguiente {
+      margin-top: 0.7rem;
+      text-align: center;
+      font-size: 0.9rem;
+      color: var(--texto-3);
+    }
+
+    /* ============================================================
+       GYM LEVELS — nivel del mes, progreso, rachas e insignias
+       ============================================================ */
+    .nivel-bronce   { --n-claro: #e7ab74; --n-medio: #b8733a; --n-oscuro: #6e3c18; }
+    .nivel-plata    { --n-claro: #f4f6f9; --n-medio: #b9bfc7; --n-oscuro: #69707a; }
+    .nivel-oro      { --n-claro: #ffe594; --n-medio: #e0b043; --n-oscuro: #8c6417; }
+    .nivel-diamante { --n-claro: #d2f5ff; --n-medio: #63c3ef; --n-oscuro: #1f5f9e; }
+
+    .gl {
+      position: relative;
+      background: linear-gradient(160deg, var(--elevada), var(--superficie) 70%);
+      border: 1px solid var(--linea);
+      border-radius: 10px;
+      padding: 1.1rem 1.2rem 1rem;
+      overflow: hidden;
+    }
+
+    /* Filo de color del nivel en el borde superior */
+    .gl::before {
+      content: '';
+      position: absolute;
+      left: 0; right: 0; top: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--n-oscuro), var(--n-claro), var(--n-medio));
+    }
+
+    .gl-top {
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+    }
+
+    .escudo { flex: none; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.45)); }
+
+    .gl-nivel { flex: 1; min-width: 0; }
+
+    .gl-etiqueta {
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--texto-3);
+    }
+
+    .gl-nombre {
+      font-family: var(--f-titulo);
+      font-weight: 700;
+      font-size: 2.3rem;
+      line-height: 0.95;
+      letter-spacing: 0.04em;
+      background: linear-gradient(180deg, var(--n-claro) 20%, var(--n-medio) 90%);
+      -webkit-background-clip: text;
+              background-clip: text;
+      color: transparent;
+    }
+
+    .gl.subio .gl-etiqueta { color: var(--n-claro); }
+    .gl.subio .escudo { animation: subir 900ms cubic-bezier(.2,1.4,.4,1) both; }
+
+    @keyframes subir {
+      0%   { transform: scale(0.4) rotate(-12deg); opacity: 0; }
+      60%  { transform: scale(1.12) rotate(3deg); opacity: 1; }
+      100% { transform: scale(1) rotate(0); }
+    }
+
+    .gl-dias { text-align: right; flex: none; }
+
+    body.con-resultado .zona { margin-top: 1.25rem; }
+    .gl + .aviso-ingreso { margin-top: 0.75rem; }
+
+    .gl-num {
+      display: block;
+      font-family: var(--f-titulo);
+      font-weight: 700;
+      font-size: 2.9rem;
+      line-height: 0.9;
+    }
+
+    .gl-dias-texto { font-size: 0.85rem; color: var(--texto-2); }
+
+    /* Pista del mes: 0 → Plata → Oro → Diamante */
+    .gl-pista {
+      position: relative;
+      height: 8px;
+      margin: 1.1rem 0 0;
+      border-radius: 99px;
+      background: rgba(255,255,255,0.07);
+    }
+
+    .gl-pista-relleno {
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--n-oscuro), var(--n-medio) 60%, var(--n-claro));
+      box-shadow: 0 0 12px color-mix(in srgb, var(--n-medio) 55%, transparent);
+      transform-origin: left;
+      animation: llenar 900ms 150ms cubic-bezier(.2,.8,.2,1) both;
+    }
+
+    @keyframes llenar { from { transform: scaleX(0); } }
+
+    .gl-hito {
+      position: absolute;
+      top: -3px;
+      width: 2px;
+      height: 14px;
+      margin-left: -1px;
+      background: var(--fondo);
+      border-radius: 1px;
+    }
+
+    .gl-hitos {
+      position: relative;
+      height: 1.1rem;
+      margin-top: 0.3rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--texto-3);
+    }
+
+    .gl-hitos span {
+      position: absolute;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      transform: translateX(-50%);
+      white-space: nowrap;
+    }
+
+    /* Punto del color de cada nivel */
+    .gl-hitos span::before {
+      content: '';
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--n-medio);
+      opacity: 0.5;
+    }
+
+    .gl-hitos span.logrado::before { opacity: 1; }
+    .gl-hitos span:last-child { transform: translateX(-100%); }
+    .gl-hitos span.logrado { color: var(--texto-2); }
+
+    .gl-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-top: 0.35rem;
+      font-size: 0.98rem;
+    }
+
+    .gl-meta strong { font-weight: 600; }
+
+    .gl-puntos {
+      flex: none;
+      padding: 0.15rem 0.6rem;
+      border-radius: 99px;
+      font-family: var(--f-titulo);
+      font-weight: 600;
+      font-size: 1.05rem;
+      letter-spacing: 0.03em;
+      color: #fff;
+      background: var(--verde);
+    }
+
+    .gl-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      margin-top: 0.9rem;
+      border-top: 1px solid var(--linea);
+    }
+
+    .gl-stat {
+      padding: 0.65rem 0.25rem 0;
+      text-align: center;
+    }
+
+    .gl-stat + .gl-stat { border-left: 1px solid var(--linea); }
+
+    .gl-stat-valor {
+      font-family: var(--f-titulo);
+      font-weight: 700;
+      font-size: 1.55rem;
+      line-height: 1.05;
+    }
+
+    .gl-stat-valor small { font-size: 0.95rem; font-weight: 600; color: var(--texto-2); margin-left: 0.15rem; }
+
+    .gl-stat-nombre {
+      font-size: 0.7rem;
+      color: var(--texto-3);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      line-height: 1.25;
+    }
+
+    /* Insignia recién desbloqueada */
+    .logro {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 0.9rem;
+      padding: 0.85rem 1.1rem;
+      border-radius: 10px;
+      border: 1px solid rgba(224, 176, 67, 0.45);
+      background:
+        radial-gradient(ellipse 70% 120% at 0% 50%, rgba(224, 176, 67, 0.18), transparent 70%),
+        var(--superficie);
+      overflow: hidden;
+      animation: logro-entrar 650ms 250ms cubic-bezier(.2,1.3,.4,1) both;
+    }
+
+    /* Destello que cruza la tarjeta */
+    .logro::after {
+      content: '';
+      position: absolute;
+      top: 0; bottom: 0;
+      width: 40%;
+      left: -50%;
+      background: linear-gradient(100deg, transparent, rgba(255, 236, 180, 0.22), transparent);
+      transform: skewX(-18deg);
+      animation: destello 1.6s 900ms ease-in-out 2;
+    }
+
+    @keyframes logro-entrar {
+      from { opacity: 0; transform: translateY(8px) scale(0.96); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    @keyframes destello { to { left: 120%; } }
+
+    .medalla { flex: none; filter: drop-shadow(0 3px 8px rgba(0,0,0,0.5)); }
+
+    .logro-etiqueta {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #f0c75e;
+    }
+
+    .logro-nombre {
+      font-family: var(--f-titulo);
+      font-weight: 700;
+      font-size: 1.75rem;
+      line-height: 1;
+      margin: 0.1rem 0 0.15rem;
+    }
+
+    .logro-desc { color: var(--texto-2); font-size: 0.95rem; line-height: 1.35; }
+    .logro-mas { color: var(--texto-3); font-size: 0.85rem; margin-top: 0.15rem; }
+
+    @media (max-width: 480px) {
+      .gl { padding: 1rem 0.9rem 0.9rem; }
+      .gl-top { gap: 0.7rem; }
+      .gl .escudo { width: 48px; height: 54px; }
+      .gl-etiqueta { font-size: 0.68rem; letter-spacing: 0.08em; white-space: nowrap; }
+      .gl-nombre { font-size: 1.7rem; }
+      .gl-num { font-size: 2.2rem; }
+      .gl-dias-texto { font-size: 0.78rem; }
+      .gl-stats { grid-template-columns: repeat(2, 1fr); }
+      .gl-stat:nth-child(3) { border-left: none; }
+      .gl-stat:nth-child(n+3) { padding-top: 0.6rem; }
+    }
+
+    /* En pantallas anchas el resultado se reparte en dos columnas
+       para que entre completo sin hacer scroll */
+    @media (min-width: 900px) {
+      body.con-resultado .zona { max-width: 980px; }
+      .res-grid {
+        display: grid;
+        grid-template-columns: 1.1fr 1fr;
+        gap: 2.75rem;
+        align-items: end;
+      }
+      .res-grid.con-gl { gap: 2.25rem; }
+      .res-der .datos { margin-top: 0; }
+      .res-grid.con-gl .res-der .datos { margin-top: 0.75rem; }
+    }
+
+    /* ============================================================
+       PANTALLAS CHICAS
+       ============================================================ */
+    @media (max-width: 700px) {
+      .reloj {
+        position: static;
+        align-self: stretch;
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        text-align: left;
+        margin-bottom: 1rem;
+      }
+      .reloj-hora { font-size: 1.8rem; }
+      .reloj-fecha { margin: 0; }
+      .marca { margin-top: 0; }
+      .campo-dni { flex-direction: column; }
+      .form-dni label { font-size: 1.9rem; }
+      .lema { font-size: 1.15rem; }
+      .acceso-personal { position: static; margin-left: auto; }
+      .pie { justify-content: space-between; gap: 1rem; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="pagina">
+
+    <div class="reloj" aria-hidden="true">
+      <div class="reloj-hora" id="relojHora">--:--</div>
+      <div class="reloj-fecha" id="relojFecha"></div>
+    </div>
+
+    <header class="marca">
+      <img class="marca-logo" src="logo.webp" alt="Logo de Fussion Fitness">
+      <div class="marca-nombre">FUSSION FITNESS</div>
+      <div class="marca-lugar">ORO VERDE</div>
+    </header>
+
+    <main class="zona">
+
+      <!-- Formulario de DNI -->
+      <form class="form-dni" id="formDni" autocomplete="off">
+        <label for="inputDni">Ingresá tu DNI</label>
+        <div class="campo-dni">
+          <input type="text" id="inputDni" inputmode="numeric" maxlength="12"
+                 placeholder="Sin puntos ni espacios" autofocus>
+          <button type="submit" class="btn-ingresar" id="btnIngresar">Ingresar</button>
+        </div>
+        <p class="ayuda">Escribí tu número y apretá Enter</p>
+      </form>
+
+      <!-- Resultado (se completa por JS) -->
+      <div class="resultado oculto" id="resultado" aria-live="polite"></div>
+
+    </main>
+
+    <footer class="pie">
+      <p class="lema">Tu transformación empieza acá.</p>
+      <!-- Vuelve al panel: si hay sesión entra directo; si no, el Inicio pide la contraseña -->
+      <a class="acceso-personal" href="index.html" title="Volver al panel de administración">
+        <svg class="icono" width="15" height="15" viewBox="0 0 24 24"><rect x="4.5" y="10.5" width="15" height="10" rx="1.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>
+        Panel
+      </a>
+    </footer>
+
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://goiwkkrumuuxngknxhgb.supabase.co'
+    const SUPABASE_KEY = 'sb_publishable_09Ni6AtnSWBrCAbhsGdFmQ_BYKp4A6-'
+    const { createClient } = supabase
+    const db = createClient(SUPABASE_URL, SUPABASE_KEY)
+
+    // Segundos que queda visible la información del socio
+    const SEGUNDOS_RESULTADO = 12
+    // Segundos para mensajes sin socio (DNI no encontrado, error)
+    const SEGUNDOS_MENSAJE = 6
+
+    /* ============================================================
+       REGLA DE ESTADO DE CUOTA
+       Misma lógica que el sistema actual. Queda aislada en esta
+       función para moverla después a js/estado-cuota.js y usarla
+       desde todas las pantallas.
+
+       - Vencimiento personal = fecha del último pago + 1 mes
+       - hoy <= vencimiento → al día
+       - hoy >  vencimiento → vencida
+       - Sin pagos → pendiente
+       - Recargo (solo si debe): hoy es posterior al día de corte del plan
+       ============================================================ */
+    function calcularEstadoCuota({ fechaUltimoPago, plan, ahora = new Date() }) {
+      const diaCorte = plan.dia_vencimiento || 10
+      const porcentajeRecargo = plan.porcentaje_recargo || 15
+      const precio = Number(plan.precio)
+      const conRecargo = ahora.getDate() > diaCorte
+      const montoConRecargo = precio * (1 + porcentajeRecargo / 100)
+
+      if (!fechaUltimoPago) {
+        return {
+          estado: 'pendiente',
+          diaCorte, porcentajeRecargo, precio, conRecargo,
+          monto: conRecargo ? montoConRecargo : precio
+        }
+      }
+
+      // + 1 mes; si el mes siguiente es más corto, cae en su último día
+      // (31/01 → 28/02). Igual que la vista v_socios_estado (migración 003).
+      // fecha_pago viene sin zona horaria y está en UTC: se lee como UTC
+      const textoPago = String(fechaUltimoPago)
+      const pago = new Date(/[zZ]$|[+-]\d\d:?\d\d$/.test(textoPago) || textoPago.length <= 10 ? textoPago : textoPago + 'Z')
+      const ultimoDiaMesSiguiente = new Date(pago.getFullYear(), pago.getMonth() + 2, 0).getDate()
+      const vencimiento = new Date(pago.getFullYear(), pago.getMonth() + 1, Math.min(pago.getDate(), ultimoDiaMesSiguiente))
+
+      const hoy0 = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate())
+      const venc0 = new Date(vencimiento.getFullYear(), vencimiento.getMonth(), vencimiento.getDate())
+      const diff = Math.round((venc0 - hoy0) / 86400000)
+
+      if (diff >= 0) {
+        return { estado: 'al-dia', vencimiento, diasRestantes: diff, diaCorte, porcentajeRecargo, precio }
+      }
+
+      return {
+        estado: 'vencida',
+        vencimiento,
+        diasVencido: Math.abs(diff),
+        diaCorte, porcentajeRecargo, precio, conRecargo,
+        monto: conRecargo ? montoConRecargo : precio
+      }
+    }
+
+    /* ============================================================
+       UTILIDADES
+       ============================================================ */
+    const pesos = n => Number(n).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })
+    const fechaLarga = f => f.toLocaleDateString('es-AR', { day: 'numeric', month: 'long' })
+    const horaCorta = f => f.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false })
+    const primerNombre = nombre => (nombre || '').trim().split(/\s+/)[0]
+
+    // Evita que un nombre con caracteres raros rompa el HTML
+    const escapar = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+
+    const ICONO_CHECK = '<svg class="icono" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>'
+    const ICONO_RELOJ = '<svg class="icono" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>'
+
+    /* ============================================================
+       RELOJ
+       ============================================================ */
+    function actualizarReloj() {
+      const ahora = new Date()
+      document.getElementById('relojHora').textContent = horaCorta(ahora)
+      const fecha = ahora.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })
+      document.getElementById('relojFecha').textContent = fecha.charAt(0).toUpperCase() + fecha.slice(1)
+    }
+    actualizarReloj()
+    setInterval(actualizarReloj, 1000 * 15)
+
+    /* ============================================================
+       FORMULARIO
+       ============================================================ */
+    const form = document.getElementById('formDni')
+    const inputDni = document.getElementById('inputDni')
+    const btnIngresar = document.getElementById('btnIngresar')
+    const resultado = document.getElementById('resultado')
+    let buscando = false
+
+    // Solo números (si alguien escribe puntos o espacios, se limpian solos)
+    inputDni.addEventListener('input', () => {
+      inputDni.value = inputDni.value.replace(/\D/g, '').slice(0, 9)
+    })
+
+    // El cursor siempre vuelve al campo de DNI
+    function enfocar() {
+      if (!resultado.classList.contains('oculto')) return
+      inputDni.focus()
+    }
+    window.addEventListener('focus', enfocar)
+    document.addEventListener('click', e => {
+      if (!e.target.closest('a, button, input')) enfocar()
+    })
+
+    form.addEventListener('submit', e => {
+      e.preventDefault()
+      const dni = inputDni.value.trim()
+      if (!dni) {
+        inputDni.classList.remove('sacudir')
+        void inputDni.offsetWidth
+        inputDni.classList.add('sacudir')
+        return
+      }
+      registrarIngreso(dni)
+    })
+
+    // Mientras se ve el resultado: Enter/Escape cierra, y si el
+    // siguiente socio empieza a escribir su DNI, se vuelve directo.
+    document.addEventListener('keydown', e => {
+      if (resultado.classList.contains('oculto')) return
+      if ((e.key === 'r' || e.key === 'R') && document.getElementById('btnRutina')) {
+        e.preventDefault()
+        document.getElementById('btnRutina').click()
+      } else if (e.key === 'Enter' || e.key === 'Escape') {
+        e.preventDefault()
+        volverAlInicio()
+      } else if (/^[0-9]$/.test(e.key)) {
+        e.preventDefault()
+        volverAlInicio(e.key)
+      }
+    })
+
+    function estadoBuscando(activo) {
+      buscando = activo
+      btnIngresar.disabled = activo
+      inputDni.readOnly = activo
+      btnIngresar.textContent = activo ? 'Buscando…' : 'Ingresar'
+    }
+
+    /* ============================================================
+       REGISTRO DE INGRESO
+       Usa la función recepcion_ingreso (migración 011): con el DNI
+       devuelve solo los datos de ese socio y registra el ingreso.
+       Si la 011 todavía no está aplicada, usa las consultas de antes.
+       ============================================================ */
+
+    // Las horas de la base vienen sin zona y están en UTC
+    function fechaUTC(valor) {
+      if (!valor) return null
+      const t = String(valor)
+      return new Date(/[zZ]$|[+-]\d\d:?\d\d$/.test(t) ? t : t + 'Z')
+    }
+
+    async function registrarIngreso(dni) {
+      if (buscando) return
+      estadoBuscando(true)
+
+      try {
+        const { data, error } = await db.rpc('recepcion_ingreso', { p_dni: dni })
+
+        // Sin la migración 011: forma anterior
+        if (error && /recepcion_ingreso|PGRST202|does not exist|not find/i.test((error.code || '') + ' ' + (error.message || ''))) {
+          return await registrarIngresoAnterior(dni)
+        }
+        if (error) throw error
+
+        if (!data || !data.encontrado) {
+          mostrarMensaje(
+            'No encontramos ese DNI',
+            `Revisá el número (${escapar(dni)}). Si todavía no sos socio, consultá en el mostrador.`
+          )
+          return
+        }
+
+        const socio = data.socio
+        const membresia = data.membresia
+        const ahora = new Date()
+        const cuota = membresia
+          ? calcularEstadoCuota({ fechaUltimoPago: data.ultimo_pago, plan: membresia.planes, ahora })
+          : null
+        const ultimoIngresoHoy = fechaUTC(data.ultimo_ingreso_hoy)
+
+        // Gym Levels: si falla, el ingreso ya quedó registrado y se muestra igual lo demás
+        const gl = await db.rpc('gym_levels_ingreso', { p_socio: socio.id })
+          .then(({ data, error }) => (error || !data || data.excluido) ? null : data, () => null)
+
+        mostrarSocio({ socio, membresia, cuota, ahora, ultimoIngresoHoy, tieneRutina: !!data.tiene_rutina, gl })
+
+      } catch (err) {
+        console.error(err)
+        mostrarMensaje(
+          'Sin conexión',
+          'No pudimos conectarnos con el sistema. Esperá unos segundos y volvé a intentar, o avisá en el mostrador.'
+        )
+      }
+    }
+
+    // Forma anterior (lectura directa de tablas). Solo se usa si falta la 011.
+    async function registrarIngresoAnterior(dni) {
+      const { data: socios, error } = await db.from('socios').select('id, nombre').eq('dni', dni).limit(1)
+      if (error) throw error
+      if (!socios || socios.length === 0) {
+        mostrarMensaje('No encontramos ese DNI', `Revisá el número (${escapar(dni)}). Si todavía no sos socio, consultá en el mostrador.`)
+        return
+      }
+      const socio = socios[0]
+      const ahora = new Date()
+      const { data: membresias } = await db.from('membresias').select('*, planes(*)')
+        .eq('socio_id', socio.id).eq('estado', 'activa').limit(1)
+      const membresia = membresias && membresias.length > 0 ? membresias[0] : null
+      let cuota = null
+      if (membresia) {
+        const { data: ultimosPagos } = await db.from('pagos').select('fecha_pago')
+          .eq('socio_id', socio.id).order('fecha_pago', { ascending: false }).limit(1)
+        cuota = calcularEstadoCuota({ fechaUltimoPago: ultimosPagos && ultimosPagos[0] ? ultimosPagos[0].fecha_pago : null, plan: membresia.planes, ahora })
+      }
+      const hoyInicio = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate()).toISOString()
+      const { data: ingresosHoy } = await db.from('asistencia').select('fecha_hora')
+        .eq('socio_id', socio.id).gte('fecha_hora', hoyInicio).order('fecha_hora', { ascending: false })
+      const ultimoIngresoHoy = ingresosHoy && ingresosHoy.length ? fechaUTC(ingresosHoy[0].fecha_hora) : null
+      const { error: errorIngreso } = await db.from('asistencia').insert({ socio_id: socio.id })
+      if (errorIngreso) {
+        mostrarMensaje('No pudimos registrar tu ingreso', 'Avisá en el mostrador para que lo registren a mano.')
+        return
+      }
+      const [tieneRutina, gl] = await Promise.all([
+        db.from('rutinas').select('id').eq('socio_id', socio.id).limit(1).then(({ data }) => !!(data && data.length), () => false),
+        db.rpc('gym_levels_ingreso', { p_socio: socio.id }).then(({ data, error }) => (error || !data || data.excluido) ? null : data, () => null)
+      ])
+      mostrarSocio({ socio, membresia, cuota, ahora, ultimoIngresoHoy, tieneRutina, gl })
+    }
+
+    /* ============================================================
+       PANTALLA DEL SOCIO
+       ============================================================ */
+    function bloqueEstado(membresia, cuota) {
+      if (!membresia) {
+        return {
+          clase: 'neutro',
+          etiqueta: 'SIN PLAN ACTIVO',
+          detalle: 'No tenés una membresía activa. Consultá en el mostrador.'
+        }
+      }
+
+      if (cuota.estado === 'al-dia') {
+        const d = cuota.diasRestantes
+        const detalle = d === 0 ? 'Tu cuota vence hoy'
+          : d === 1 ? `Falta 1 día para el vencimiento`
+          : `Faltan ${d} días para el vencimiento`
+        return { clase: d <= 3 ? 'alerta' : 'ok', etiqueta: 'AL DÍA', detalle }
+      }
+
+      if (cuota.estado === 'vencida') {
+        const d = cuota.diasVencido
+        return {
+          clase: 'deuda',
+          etiqueta: 'VENCIDA',
+          detalle: d === 1 ? 'Tu cuota venció ayer' : `Tu cuota venció hace ${d} días`
+        }
+      }
+
+      return {
+        clase: 'alerta',
+        etiqueta: 'PENDIENTE',
+        detalle: 'Todavía no hay pagos registrados'
+      }
+    }
+
+    function filasDatos(membresia, cuota) {
+      if (!membresia) return ''
+
+      let html = `
+        <div class="dato">
+          <span class="dato-nombre">Plan</span>
+          <span class="dato-valor">${escapar(membresia.planes.nombre)}</span>
+        </div>`
+
+      if (cuota.vencimiento) {
+        html += `
+        <div class="dato">
+          <span class="dato-nombre">${cuota.estado === 'vencida' ? 'Venció el' : 'Vence el'}</span>
+          <span class="dato-valor">${fechaLarga(cuota.vencimiento)}</span>
+        </div>`
+      }
+
+      if (cuota.estado === 'vencida' || cuota.estado === 'pendiente') {
+        html += `
+        <div class="dato">
+          <span class="dato-nombre">Cuota</span>
+          <span class="dato-valor">${pesos(cuota.precio)}</span>
+        </div>`
+
+        if (cuota.conRecargo) {
+          html += `
+        <div class="dato">
+          <span class="dato-nombre">Recargo ${cuota.porcentajeRecargo}%</span>
+          <span class="dato-valor">${pesos(cuota.monto - cuota.precio)}</span>
+        </div>`
+        }
+
+        html += `
+        <div class="dato total">
+          <span class="dato-nombre">Total a pagar</span>
+          <span class="dato-valor">${pesos(cuota.monto)}</span>
+        </div>`
+      }
+
+      return html
+    }
+
+    function notaCuota(membresia, cuota) {
+      if (!membresia) return ''
+      if ((cuota.estado === 'vencida' || cuota.estado === 'pendiente') && !cuota.conRecargo) {
+        return `<p class="nota">Pagando hasta el día ${cuota.diaCorte} de este mes no tenés recargo.</p>`
+      }
+      return ''
+    }
+
+    /* ============================================================
+       GYM LEVELS — gráficos (escudo de nivel e insignias)
+       Mismos dibujos que va a usar el perfil del alumno y la app.
+       ============================================================ */
+    const NIVELES = {
+      bronce:   { nombre: 'Bronce',   claro: '#e7ab74', medio: '#b8733a', oscuro: '#6e3c18' },
+      plata:    { nombre: 'Plata',    claro: '#f4f6f9', medio: '#b9bfc7', oscuro: '#69707a' },
+      oro:      { nombre: 'Oro',      claro: '#ffe594', medio: '#e0b043', oscuro: '#8c6417' },
+      diamante: { nombre: 'Diamante', claro: '#d2f5ff', medio: '#63c3ef', oscuro: '#1f5f9e' }
+    }
+
+    // Escudo metálico con galones: 1 Bronce, 2 Plata, 3 Oro, gema Diamante
+    function escudoNivel(nivel, tam = 64) {
+      const n = NIVELES[nivel] || NIVELES.bronce
+      const id = 'esc-' + nivel
+      const galon = y => `<path d="M20 ${y} 32 ${y + 7} 44 ${y}" fill="none" stroke="${n.oscuro}" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/>`
+      const marcas = {
+        bronce:   galon(33),
+        plata:    galon(28) + galon(38),
+        oro:      galon(23) + galon(33) + galon(43),
+        diamante: `<path d="M23 27h18l5 7-14 16-14-16z" fill="${n.claro}" stroke="${n.oscuro}" stroke-width="2.2" stroke-linejoin="round"/>
+                   <path d="M18 34h28M27 27l-2 7 7 16 7-16-2-7" fill="none" stroke="${n.oscuro}" stroke-width="1.6" stroke-linejoin="round"/>`
+      }
+      return `
+        <svg class="escudo" width="${tam}" height="${Math.round(tam * 1.125)}" viewBox="0 0 64 72" aria-hidden="true">
+          <defs>
+            <linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="${n.claro}"/>
+              <stop offset=".55" stop-color="${n.medio}"/>
+              <stop offset="1" stop-color="${n.oscuro}"/>
+            </linearGradient>
+          </defs>
+          <path d="M32 3 58 12v24c0 16-12 27-26 33C18 63 6 52 6 36V12z" fill="url(#${id})" stroke="${n.oscuro}" stroke-width="1.5"/>
+          <path d="M32 9.5 52.5 16.5v19.5c0 12.5-9 21.5-20.5 26.5-11.5-5-20.5-14-20.5-26.5V16.5z" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1.2"/>
+          <path d="M32 3 58 12v8L6 44V12z" fill="rgba(255,255,255,.14)"/>
+          ${marcas[nivel] || marcas.bronce}
+        </svg>`
+    }
+
+    const ICONOS_INSIGNIA = {
+      primer_paso: '<path d="M6.5 21V3.5M6.5 4h11l-2.2 4 2.2 4h-11"/>',
+      constancia:  '<rect x="4" y="5.5" width="16" height="14.5" rx="1.5"/><path d="M4 10h16M8 3.5v4M16 3.5v4M9 15l2 2 4-4"/>',
+      imparable:   '<path d="M13 2.5 5.5 13.5H12l-1 8 7.5-11H12z"/>',
+      hierro:      '<path d="M6.5 6v12M17.5 6v12M3.5 9v6M20.5 9v6M6.5 12h11"/>',
+      diamante:    '<path d="M6 4h12l3.5 5L12 20.5 2.5 9zM2.5 9h19M9 4 7.5 9 12 20.5 16.5 9 15 4"/>',
+      elite:       '<path d="M3.5 8 8 12l4-6.5 4 6.5 4.5-4-1.5 10h-14zM5 20.5h14"/>',
+      podio:       '<path d="M3 20.5h18M9 20.5v-11h6v11M3 20.5v-6h6M15 20.5v-8h6"/>',
+      campeon:     '<path d="M8 4h8v6a4 4 0 0 1-8 0zM8 6H4.5a3.5 3.5 0 0 0 3.8 4.2M16 6h3.5a3.5 3.5 0 0 1-3.8 4.2M12 14v3.5M8.5 20.5h7M10 17.5h4"/>',
+      centenario:  '<text x="12" y="16" text-anchor="middle" font-family="Barlow Condensed, sans-serif" font-weight="700" font-size="10" fill="currentColor" stroke="none">100</text><circle cx="12" cy="12" r="9"/>',
+      madrugador:  '<path d="M3 18.5h18M7 18.5a5 5 0 0 1 10 0M12 4.5v4M4.9 11.4l1.5 1.5M19.1 11.4l-1.5 1.5M9.5 6.5 12 4l2.5 2.5"/>'
+    }
+
+    // Medalla hexagonal dorada con el ícono de la insignia
+    function medallaInsignia(codigo, tam = 60) {
+      const icono = ICONOS_INSIGNIA[codigo] || ICONOS_INSIGNIA.primer_paso
+      return `
+        <svg class="medalla" width="${tam}" height="${tam}" viewBox="0 0 60 60" aria-hidden="true">
+          <defs>
+            <linearGradient id="med-aro" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#ffe594"/><stop offset=".5" stop-color="#e0b043"/><stop offset="1" stop-color="#8c6417"/>
+            </linearGradient>
+          </defs>
+          <path d="M30 2.5 54 16.25v27.5L30 57.5 6 43.75v-27.5z" fill="url(#med-aro)"/>
+          <path d="M30 8 49 19v22L30 52 11 41V19z" fill="#1d1a1b" stroke="rgba(0,0,0,.4)"/>
+          <g transform="translate(16 16) scale(1.1667)" fill="none" stroke="#f3d27a" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" color="#f3d27a">${icono}</g>
+        </svg>`
+    }
+
+    const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
+    const capitalizar = t => t ? t.charAt(0).toUpperCase() + t.slice(1).toLowerCase() : ''
+
+    function tarjetaLogro(insignias) {
+      if (!insignias || !insignias.length) return ''
+      // Se destaca la más importante (la última del catálogo); el resto, en el perfil
+      const principal = insignias[insignias.length - 1]
+      const resto = insignias.length - 1
+      return `
+        <div class="logro">
+          ${medallaInsignia(principal.codigo)}
+          <div>
+            <div class="logro-etiqueta">Insignia desbloqueada</div>
+            <div class="logro-nombre">${escapar(principal.nombre)}</div>
+            <div class="logro-desc">${escapar(principal.descripcion)}</div>
+            ${resto > 0 ? `<div class="logro-mas">y ${resto === 1 ? 'otra más' : resto + ' más'}</div>` : ''}
+          </div>
+        </div>`
+    }
+
+    function tarjetaNivel(gl, ahora, primerIngresoDelDia) {
+      const nivel = NIVELES[gl.nivel] ? gl.nivel : 'bronce'
+      const n = gl.asistencias_mes
+      const tope = gl.niveles.diamante
+      const pct = v => Math.min(100, (v / tope) * 100)
+      const subio = gl.subio_de_nivel && primerIngresoDelDia
+
+      const hitos = [['plata', gl.niveles.plata], ['oro', gl.niveles.oro], ['diamante', tope]]
+
+      const meta = gl.siguiente
+        ? `Faltan <strong>${gl.siguiente.faltan}</strong> ${gl.siguiente.faltan === 1 ? 'día' : 'días'} para <strong>${NIVELES[gl.siguiente.nivel].nombre}</strong>`
+        : `<strong>Nivel máximo del mes</strong>`
+
+      const stat = (valor, unidad, nombre) => `
+        <div class="gl-stat">
+          <div class="gl-stat-valor">${valor}${unidad ? `<small>${unidad}</small>` : ''}</div>
+          <div class="gl-stat-nombre">${nombre}</div>
+        </div>`
+
+      const rm = gl.racha_mensual, rs = gl.racha_semanal
+
+      return `
+        <section class="gl nivel-${nivel}${subio ? ' subio' : ''}" aria-label="Gym Levels">
+          <div class="gl-top">
+            ${escudoNivel(nivel)}
+            <div class="gl-nivel">
+              <div class="gl-etiqueta">${subio ? 'Subiste de nivel' : 'Nivel del mes'}</div>
+              <div class="gl-nombre">${NIVELES[nivel].nombre.toUpperCase()}</div>
+            </div>
+            <div class="gl-dias">
+              <span class="gl-num">${n}</span>
+              <span class="gl-dias-texto">${n === 1 ? 'día' : 'días'} en ${MESES[ahora.getMonth()]}</span>
+            </div>
+          </div>
+
+          <div class="gl-pista" role="progressbar" aria-valuemin="0" aria-valuemax="${tope}" aria-valuenow="${Math.min(n, tope)}">
+            <div class="gl-pista-relleno" style="width:${pct(n)}%"></div>
+            ${hitos.slice(0, 2).map(([, v]) => `<div class="gl-hito" style="left:${pct(v)}%"></div>`).join('')}
+          </div>
+          <div class="gl-hitos">
+            ${hitos.map(([k, v]) => `<span class="nivel-${k}${n >= v ? ' logrado' : ''}" style="left:${pct(v)}%" title="${NIVELES[k].nombre}">${v}</span>`).join('')}
+          </div>
+
+          <div class="gl-meta">
+            <span>${meta}</span>
+            ${primerIngresoDelDia && gl.puntos_hoy > 0 ? `<span class="gl-puntos">+${gl.puntos_hoy} pts</span>` : ''}
+          </div>
+
+          <div class="gl-stats">
+            ${stat(gl.puesto ? gl.puesto + '°' : '–', '', 'Puesto')}
+            ${stat(rm || '–', rm ? (rm === 1 ? 'mes' : 'meses') : '', 'Racha mensual')}
+            ${stat(rs || '–', rs ? 'sem' : '', 'Racha semanal')}
+            ${stat(Number(gl.puntos_total).toLocaleString('es-AR'), '', 'Puntos')}
+          </div>
+        </section>`
+    }
+
+    function mostrarSocio({ socio, membresia, cuota, ahora, ultimoIngresoHoy, tieneRutina, gl }) {
+      const estado = bloqueEstado(membresia, cuota)
+
+      const aviso = ultimoIngresoHoy
+        ? `<div class="aviso-ingreso">${ICONO_RELOJ}Ya registraste un ingreso hoy a las ${horaCorta(ultimoIngresoHoy)}</div>`
+        : ''
+
+      // Saludo: el alias que eligió el socio, o su primer nombre
+      const nombre = gl && gl.tiene_alias ? gl.nombre : capitalizar(primerNombre(socio.nombre))
+
+      const bloqueCuota = `
+            <div class="estado ${estado.clase}">
+              <div class="estado-etiqueta">${estado.etiqueta}</div>
+              <div class="estado-detalle">${estado.detalle}</div>
+            </div>`
+
+      const hayLogro = !!(gl && gl.insignias_nuevas && gl.insignias_nuevas.length)
+
+      resultado.innerHTML = `
+        <div class="res-grid${gl ? ' con-gl' : ''}">
+          <div class="res-izq">
+            <div class="confirmacion">${ICONO_CHECK}Ingreso registrado a las ${horaCorta(ahora)}</div>
+            <h1 class="hola">Hola, ${escapar(nombre)}</h1>
+            ${gl ? tarjetaLogro(gl.insignias_nuevas) + tarjetaNivel(gl, ahora, !ultimoIngresoHoy) : bloqueCuota}
+            ${aviso}
+          </div>
+          <div class="res-der">
+            ${gl ? bloqueCuota : ''}
+            <div class="datos">${filasDatos(membresia, cuota)}</div>
+            ${notaCuota(membresia, cuota)}
+            ${tieneRutina ? `
+            <a class="btn-rutina" id="btnRutina" href="ver-rutina.html?socio=${encodeURIComponent(socio.id)}&desde=recepcion" target="ff-rutina">
+              <svg class="icono" width="22" height="22" viewBox="0 0 24 24"><path d="M6.5 6v12M17.5 6v12M3.5 9v6M20.5 9v6M6.5 12h11"/></svg>
+              Ver mi rutina
+              <svg class="icono" width="16" height="16" viewBox="0 0 24 24" style="opacity:.75"><path d="M14 4.5h5.5V10M19.5 4.5 11 13M17 14v4.5a1 1 0 0 1-1 1H5.5a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1H10"/></svg>
+            </a>` : ''}
+            ${botonListo()}
+          </div>
+        </div>
+      `
+      // Con insignia nueva, unos segundos más para leerla
+      abrirResultado(hayLogro ? SEGUNDOS_RESULTADO + 4 : SEGUNDOS_RESULTADO)
+    }
+
+    function mostrarMensaje(titulo, texto) {
+      resultado.innerHTML = `
+        <h1 class="mensaje-titulo">${titulo}</h1>
+        <p class="mensaje-texto">${texto}</p>
+        ${botonListo('Volver')}
+      `
+      abrirResultado(SEGUNDOS_MENSAJE)
+    }
+
+    function botonListo(texto = 'Listo') {
+      return `
+        <button class="btn-listo" type="button" id="btnListo">
+          <span class="btn-listo-texto">${texto}</span>
+          <span class="cuenta" id="cuenta"></span>
+        </button>
+        <p class="siguiente">El siguiente socio puede escribir su DNI directamente</p>`
+    }
+
+    /* ============================================================
+       MOSTRAR / OCULTAR RESULTADO
+       ============================================================ */
+    let temporizador = null
+
+    function abrirResultado(segundos) {
+      form.classList.add('oculto')
+      resultado.classList.remove('oculto')
+      document.body.classList.add('con-resultado')
+      inputDni.blur()
+
+      const cuenta = document.getElementById('cuenta')
+      cuenta.style.animationDuration = `${segundos}s`
+      cuenta.classList.add('corriendo')
+      document.getElementById('btnListo').addEventListener('click', () => volverAlInicio())
+      const btnRutina = document.getElementById('btnRutina')
+      if (btnRutina) btnRutina.addEventListener('click', e => {
+        e.preventDefault()
+        abrirRutina(btnRutina.href)
+      })
+
+      clearTimeout(temporizador)
+      temporizador = setTimeout(() => volverAlInicio(), segundos * 1000)
+    }
+
+    // La rutina se abre siempre en la misma pestaña aparte ("ff-rutina"):
+    // si otro socio abre la suya, reemplaza a la anterior y no se acumulan.
+    // Recepción vuelve enseguida a la pantalla de DNI.
+    function abrirRutina(url) {
+      const ventana = window.open(url, 'ff-rutina')
+      if (ventana) {
+        try { ventana.opener = null } catch {}
+        ventana.focus()
+        volverAlInicio()
+      } else {
+        // Si el navegador bloquea pestañas nuevas, se abre acá mismo
+        location.replace(url)
+      }
+    }
+
+    function volverAlInicio(primerDigito = '') {
+      clearTimeout(temporizador)
+      resultado.classList.add('oculto')
+      resultado.innerHTML = '' // no dejar datos del socio en la página
+      document.body.classList.remove('con-resultado')
+      form.classList.remove('oculto')
+
+      estadoBuscando(false)
+      inputDni.value = primerDigito
+      inputDni.focus()
+    }
+  </script>
+</body>
+</html>

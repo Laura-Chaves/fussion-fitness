@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#141213">
+  <title>Turnos | Fussion Fitness</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    /* ============================================================
+       TOKENS DE DISEÑO — se van a mover a css/tokens.css cuando
+       rediseñemos el resto de las páginas.
+       ============================================================ */
+    :root {
+      --fondo: #141213;
+      --superficie: #1b1819;
+      --elevada: #241f21;
+      --linea: #2f292b;
+      --linea-suave: #231e20;
+      --texto: #f3f0ef;
+      --texto-2: #a39a9c;
+      --texto-3: #736b6d;
+      --verde: #11803e;
+      --verde-hover: #169a4b;
+      --verde-texto: #3ddc84;
+      --peligro: #cc0000;
+      --peligro-hover: #e00b0b;
+      --peligro-texto: #ff5a52;
+      --al-dia: #38bdf8;
+      --al-dia-texto: #7dd3fc;
+
+      --f-titulo: 'Barlow Condensed', 'Arial Narrow', 'Roboto Condensed', sans-serif;
+      --f-texto: 'Barlow', 'Segoe UI', system-ui, sans-serif;
+
+      --ancho-lateral: 248px;
+      --radio: 6px;
+      --transicion: 160ms ease;
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { -webkit-text-size-adjust: 100%; }
+
+    body {
+      font-family: var(--f-texto);
+      font-size: 16px;
+      line-height: 1.5;
+      background: var(--fondo);
+      color: var(--texto);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+    svg { flex-shrink: 0; }
+
+    :focus-visible {
+      outline: 2px solid var(--verde-texto);
+      outline-offset: 2px;
+      border-radius: 2px;
+    }
+
+    /* Mientras se verifica la sesión no mostramos nada */
+    body.verificando .app { visibility: hidden; }
+
+    .icono {
+      width: 20px;
+      height: 20px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.75;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* ============================================================
+       ESTRUCTURA
+       ============================================================ */
+    .app {
+      display: grid;
+      grid-template-columns: var(--ancho-lateral) 1fr;
+      min-height: 100vh;
+    }
+
+    /* ---------- Barra lateral ---------- */
+    .lateral {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: var(--superficie);
+      border-right: 1px solid var(--linea);
+      padding: 1.5rem 0 1.25rem;
+      overflow-y: auto;
+    }
+
+    .marca {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0 1.25rem 1.5rem;
+    }
+
+    .marca img {
+      width: 44px;
+      height: 44px;
+      object-fit: contain;
+    }
+
+    .marca-nombre {
+      font-family: var(--f-titulo);
+      font-weight: 700;
+      font-size: 1.45rem;
+      letter-spacing: 0.06em;
+      line-height: 1;
+      color: var(--verde-texto);
+    }
+
+    .marca-lugar {
+      font-size: 0.8rem;
+      color: var(--texto-2);
+      margin-top: 0.2rem;
+    }
+
+    .nav { flex: 1; }
+
+    .nav-grupo { padding: 0.9rem 0 0.4rem; }
+
+    .nav-grupo-titulo {
+      font-family: var(--f-titulo);
+      font-weight: 600;
+      font-size: 0.95rem;
+      letter-spacing: 0.02em;
+      color: var(--texto-3);
+      padding: 0 1.25rem 0.35rem;
+    }
+
+    .nav-link {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.55rem 1.25rem;
+      font-size: 0.95rem;
+      color: var(--texto-2);
+      transition: color var(--transicion), background var(--transicion);
+    }
+
+    .nav-link:hover { color: var(--texto); background: var(--elevada); }
+
+    .nav-link[aria-current="page"] {
+      color: var(--texto);
+      background: var(--elevada);
+    }
+
+    .nav-link[aria-current="page"]::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 6px;
+      bottom: 6px;
+      width: 3px;
+      background: var(--verde);
+    }
+
+    .lateral-pie {
+      border-top: 1px solid var(--linea);
+      padding: 1rem 1.25rem 0;
+      margin-top: 1rem;
+    }
+
+    .admin-nombre {
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .admin-rol {
+      font-size: 0.8rem;
+      color: var(--texto-3);
+      margin-bottom: 0.75rem;
+    }
+
+    .btn-salir {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.9rem;
+      color: var(--texto-2);
+      padding: 0.35rem 0;
+      transition: color var(--transicion);
+    }
+
+    .btn-salir:hover { color: var(--peligro-texto); }
+
+    /* ---------- Barra superior e inferior (solo celular) ---------- */
+    .barra-movil,
+    .nav-inferior,
+    .velo { display: none; }
+
+    /* ============================================================
+       PÁGINA INTERNA
+       ============================================================ */
+    .principal {
+      min-width: 0;
+      padding: 0 clamp(1.25rem, 3.5vw, 3rem) 7rem;
+    }
+
+    .contenido { max-width: 1240px; }
+
+    /* Evita que el contenido ancho empuje la página hacia los costados */
+    .principal-wrap,
+    .espacio > * { min-width: 0; }
+
+    .oculto { display: none !important; }
+
+    /* ---------- Encabezado de página (león gris) ---------- */
+    .encabezado {
+      position: relative;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 1.5rem;
+      padding: clamp(2rem, 5vh, 3.25rem) 0 2rem;
+      overflow: hidden;
+    }
+
+    .encabezado-logo {
+      position: absolute;
+      right: 180px;
+      top: 50%;
+      width: 300px;
+      transform: translateY(-50%);
+      opacity: 0.07;
+      filter: grayscale(1) brightness(1.6);
+      clip-path: inset(0 0 7% 0);
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .encabezado-texto { position: relative; }
+
+    .antetitulo {
+      font-size: 0.95rem;
+      color: var(--texto-2);
+      margin-bottom: 0.25rem;
+    }
+
+    .titulo-pagina {
+      font-family: var(--f-titulo);
+      font-weight: 700;
+      font-size: clamp(2.6rem, 5vw, 3.6rem);
+      line-height: 0.95;
+    }
+
+    .bajada {
+      color: var(--texto-2);
+      margin-top: 0.6rem;
+      max-width: 46ch;
+    }
+
+    .trazo {
+      display: block;
+      width: 72px;
+      height: 6px;
+      margin-top: 1.1rem;
+      background: var(--verde);
+      transform: skewX(-24deg);
+    }
+
+    /* ---------- Botones ---------- */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      height: 44px;
+      padding: 0 1.1rem;
+      border-radius: var(--radio);
+      border: 1px solid var(--linea);
+      background: var(--superficie);
+      font-weight: 600;
+      font-size: 0.95rem;
+      white-space: nowrap;
+      transition: background var(--transicion), border-color var(--transicion), color var(--transicion);
+    }
+
+    .btn:hover { background: var(--elevada); border-color: #4a3f42; }
+    .btn .icono { width: 18px; height: 18px; }
+
+    .btn-primario {
+      background: var(--verde);
+      border-color: var(--verde-texto);
+      color: #fff;
+    }
+
+    .btn-primario:hover { background: var(--verde-hover); border-color: var(--verde-hover); }
+
+    .btn-primario:disabled {
+      background: var(--elevada);
+      border-color: var(--linea);
+      color: var(--texto-3);
+      cursor: wait;
+    }
+
+    .btn-fantasma {
+      background: none;
+      border-color: transparent;
+      color: var(--texto-2);
+    }
+
+    .btn-fantasma:hover { background: var(--elevada); color: var(--texto); border-color: transparent; }
+
+    .btn-icono {
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      border-radius: var(--radio);
+      color: var(--texto-3);
+      transition: color var(--transicion), background var(--transicion);
+    }
+
+    .btn-icono:hover { color: var(--texto); background: var(--elevada); }
+    .btn-icono.peligro:hover { color: var(--peligro-texto); background: rgba(204, 0, 0, 0.12); }
+    .btn-icono .icono { width: 17px; height: 17px; }
+    .btn-icono:disabled { opacity: 0.3; pointer-events: none; }
+
+
+    /* ---------- Mensajes ---------- */
+    .mensaje { display: none; margin-top: 0.9rem; padding: 0.75rem 1rem; border-radius: var(--radio); font-size: 0.95rem; }
+    .mensaje.visible { display: block; }
+    .mensaje.error  { color: #ffb3ad; background: rgba(204, 0, 0, 0.14); border: 1px solid rgba(255, 90, 82, 0.35); }
+    .mensaje.exito  { color: #9ff0bd; background: rgba(62, 207, 116, 0.1); border: 1px solid rgba(62, 207, 116, 0.35); }
+    .mensaje.aviso  { color: #f5d08a; background: rgba(245, 181, 68, 0.1); border: 1px solid rgba(245, 181, 68, 0.35); }
+
+    /* ---------- Estado de cuota (mismos colores que Registrar pago) ---------- */
+    .estado-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 0.15rem 0.5rem;
+      border-radius: 3px;
+      white-space: nowrap;
+    }
+
+    .estado-tag::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .estado-tag.al_dia        { color: #7dd3fc; background: rgba(56, 189, 248, 0.12); }
+    .estado-tag.por_vencer    { color: #f5c46b; background: rgba(245, 181, 68, 0.13); }
+    .estado-tag.vencida       { color: #ff8a83; background: rgba(204, 0, 0, 0.16); }
+    .estado-tag.pendiente     { color: #f5c46b; background: rgba(245, 181, 68, 0.13); }
+    .estado-tag.sin_membresia { color: var(--texto-2); background: rgba(255, 255, 255, 0.06); }
+    .estado-tag.baja          { color: var(--texto-3); background: rgba(255, 255, 255, 0.04); }
+
+    /* ---------- Formularios ---------- */
+    .campo { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
+    .campo label { font-size: 0.85rem; font-weight: 600; color: var(--texto-2); }
+    .campo label .obligatorio { color: var(--verde-texto); }
+    .campo .ayuda { font-size: 0.8rem; color: var(--texto-3); }
+
+    .campo input, .campo select, .campo textarea {
+      width: 100%;
+      height: 46px;
+      padding: 0 0.9rem;
+      font: inherit;
+      color: var(--texto);
+      background: var(--fondo);
+      border: 1px solid var(--linea);
+      border-radius: var(--radio);
+      outline: none;
+      color-scheme: dark;
+      transition: border-color var(--transicion);
+    }
+
+    .campo textarea { height: auto; min-height: 84px; padding: 0.7rem 0.9rem; resize: vertical; }
+    .campo input:focus, .campo select:focus, .campo textarea:focus { border-color: var(--verde-texto); }
+    .campo input.invalido { border-color: var(--peligro-texto); }
+
+    .tarjeta {
+      border-radius: 12px;
+      border: 1px solid var(--linea);
+      background: var(--superficie);
+    }
+
+    .tarjeta-cab {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1.1rem 1.4rem;
+      border-bottom: 1px solid var(--linea);
+    }
+
+    .tarjeta-titulo { font-family: var(--f-titulo); font-weight: 600; font-size: 1.4rem; line-height: 1.1; }
+    .tarjeta-sub { font-size: 0.85rem; color: var(--texto-3); margin-top: 0.1rem; }
+    .tarjeta-cuerpo { padding: 1.25rem 1.4rem 1.4rem; }
+
+    .avatar-ini {
+      flex: none;
+      display: grid;
+      place-items: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      font-family: var(--f-titulo);
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--texto);
+      background: linear-gradient(145deg, #3a2f32, #241f21);
+      border: 1px solid var(--linea);
+    }
+
+    .vacio-tabla { padding: 2.5rem 1.25rem; text-align: center; color: var(--texto-3); }
+    .vacio-tabla strong { display: block; color: var(--texto); font-size: 1.05rem; margin-bottom: 0.25rem; }
+
+    /* ============================================================
+       TURNOS (panel)
+       ============================================================ */
+    .periodo { position: relative; display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+    .periodo-nombre { min-width: 13rem; text-align: center; font-family: var(--f-titulo); font-weight: 600; font-size: 1.3rem; }
+    .btn-cuadrado { width: 44px; padding: 0; }
+
+    .pestanas-admin {
+      display: inline-flex;
+      gap: 0.25rem;
+      padding: 4px;
+      margin-bottom: 1.25rem;
+      border-radius: 99px;
+      border: 1px solid var(--linea);
+      background: var(--superficie);
+    }
+
+    .pestanas-admin button { height: 36px; padding: 0 1.1rem; border-radius: 99px; font-weight: 600; font-size: 0.92rem; color: var(--texto-2); }
+    .pestanas-admin button.activa { background: var(--verde); color: #fff; }
+
+    .resumen-dia { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6rem; margin-bottom: 1rem; }
+    .dato-dia { padding: 0.95rem 1.1rem; border-radius: 12px; border: 1px solid var(--linea); background: var(--superficie); min-width: 0; }
+    .dato-dia span { display: block; font-size: 0.82rem; color: var(--texto-3); }
+    .dato-dia strong { display: block; font-family: var(--f-titulo); font-weight: 700; font-size: 2.1rem; line-height: 1.1; white-space: nowrap; }
+    .dato-dia small { font-size: 0.8rem; color: var(--texto-3); }
+
+    /* Horas del día */
+    .horas { display: grid; gap: 0.5rem; }
+
+    .hora-fila {
+      display: grid;
+      grid-template-columns: 110px 190px minmax(0, 1fr);
+      gap: 1rem;
+      align-items: start;
+      padding: 0.85rem 1.1rem;
+      border-radius: 12px;
+      border: 1px solid var(--linea);
+      background: var(--superficie);
+    }
+
+    .hora-fila.pasada { opacity: 0.55; }
+    .hora-fila.cerrada { border-style: dashed; background: none; }
+    .hora-fila.ahora { border-color: var(--verde-texto); box-shadow: inset 3px 0 0 var(--verde); }
+
+    .hora-num { font-family: var(--f-titulo); font-weight: 700; font-size: 1.6rem; line-height: 1; }
+    .hora-num small { display: block; font-family: var(--f-texto); font-weight: 500; font-size: 0.78rem; color: var(--texto-3); margin-top: 0.2rem; }
+    .hora-num .ahora-tag { display: inline-block; margin-top: 0.35rem; padding: 0.05rem 0.45rem; border-radius: 99px; font-family: var(--f-texto); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.05em; color: #fff; background: var(--verde); }
+
+    .ocupacion { padding-top: 0.2rem; }
+    .ocupacion-num { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; font-size: 0.85rem; color: var(--texto-2); }
+    .ocupacion-num strong { font-family: var(--f-titulo); font-size: 1.35rem; color: var(--texto); }
+    .ocupacion-pista { height: 6px; margin-top: 0.35rem; border-radius: 99px; background: rgba(255, 255, 255, 0.07); overflow: hidden; }
+    .ocupacion-fill { height: 100%; border-radius: 99px; background: var(--verde); }
+    .ocupacion-fill.lleno { background: #f5b544; }
+
+    .anotados { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+
+    .anotado {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.25rem 0.3rem 0.25rem 0.6rem;
+      border-radius: 99px;
+      border: 1px solid var(--linea);
+      background: var(--fondo);
+      font-size: 0.85rem;
+      max-width: 100%;
+    }
+
+    .anotado.vino { border-color: rgba(62, 207, 116, 0.45); }
+    .anotado .vino-marca { width: 8px; height: 8px; border-radius: 50%; background: var(--texto-3); flex: none; }
+    .anotado.vino .vino-marca { background: #3ecf74; }
+    .anotado-nombre { font-weight: 600; text-transform: capitalize; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .anotado-alias { color: var(--texto-3); font-size: 0.78rem; white-space: nowrap; }
+
+    .quitar {
+      display: grid;
+      place-items: center;
+      height: 24px;
+      min-width: 24px;
+      padding: 0 0.3rem;
+      border-radius: 99px;
+      color: var(--texto-3);
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .quitar .icono { width: 13px; height: 13px; }
+    .quitar:hover { color: #ffb3ad; background: rgba(204, 0, 0, 0.15); }
+    .quitar.confirmar { color: #fff; background: var(--peligro); padding: 0 0.6rem; }
+
+    .sin-anotados { font-size: 0.85rem; color: var(--texto-3); padding-top: 0.35rem; }
+    .leyenda-dia { margin-top: 0.9rem; font-size: 0.82rem; color: var(--texto-3); display: flex; gap: 1rem; flex-wrap: wrap; }
+    .leyenda-dia span { display: inline-flex; align-items: center; gap: 0.4rem; }
+    .leyenda-dia i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); }
+
+    /* Grilla de cupos */
+    .grilla-cupos { overflow-x: auto; }
+    .tabla-cupos { border-collapse: separate; border-spacing: 4px; margin: 0 auto; }
+    .tabla-cupos th { font-size: 0.78rem; font-weight: 600; color: var(--texto-3); padding: 0.2rem 0.35rem; text-align: center; white-space: nowrap; }
+    .tabla-cupos th.hora-col { text-align: right; padding-right: 0.6rem; }
+
+    .cupo {
+      width: 62px;
+      height: 38px;
+      text-align: center;
+      font: inherit;
+      font-family: var(--f-titulo);
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--texto);
+      background: var(--elevada);
+      border: 1px solid var(--linea);
+      border-radius: 6px;
+      outline: none;
+      -moz-appearance: textfield;
+      appearance: textfield;
+    }
+
+    .cupo::-webkit-outer-spin-button, .cupo::-webkit-inner-spin-button { -webkit-appearance: none; appearance: none; margin: 0; }
+    .cupo:focus { border-color: var(--verde-texto); }
+    .cupo.cerrado { color: var(--texto-3); background: transparent; border-style: dashed; }
+    .cupo.cambiado { border-color: #f5b544; box-shadow: inset 0 0 0 1px #f5b544; }
+
+    .herramientas-cupos { display: flex; align-items: flex-end; gap: 0.6rem; flex-wrap: wrap; padding: 1rem 1.4rem; border-bottom: 1px solid var(--linea); }
+    .herramientas-cupos .campo { width: 150px; }
+    .herramientas-cupos .campo:nth-child(2) { width: 230px; }
+    .herramientas-cupos .campo input, .herramientas-cupos .campo select { height: 40px; }
+    .herramientas-cupos .btn { height: 40px; }
+
+    .barra-guardar-cupos { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; padding: 1rem 1.4rem; border-top: 1px solid var(--linea); }
+    .barra-guardar-cupos p { font-size: 0.85rem; color: var(--texto-3); }
+
+    .reglas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+    .interruptor-fila { display: flex; align-items: center; gap: 0.6rem; height: 46px; font-size: 0.92rem; color: var(--texto); cursor: pointer; }
+    .interruptor-fila input { width: 18px; height: 18px; accent-color: var(--verde-texto); }
+
+    @media (max-width: 1080px) {
+      .hora-fila { grid-template-columns: 90px minmax(0, 1fr); }
+      .hora-fila .anotados, .hora-fila .sin-anotados { grid-column: 1 / -1; }
+      .reglas { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 820px) {
+      .periodo { width: 100%; }
+      .periodo-nombre { flex: 1; min-width: 0; font-size: 1.1rem; }
+      .resumen-dia { grid-template-columns: 1fr 1fr; }
+      .dato-dia strong { font-size: 1.7rem; }
+      .hora-fila { padding: 0.75rem; gap: 0.6rem 0.8rem; }
+      .herramientas-cupos { padding: 0.9rem; }
+      .cupo { width: 46px; height: 34px; font-size: 1rem; }
+    }
+
+    /* ============================================================
+       CELULAR
+       ============================================================ */
+    @media (max-width: 820px) {
+      .app { grid-template-columns: 1fr; }
+
+      .lateral {
+        position: fixed;
+        z-index: 40;
+        left: 0;
+        top: 0;
+        width: min(84vw, 300px);
+        transform: translateX(-100%);
+        transition: transform 220ms ease;
+        padding-top: calc(1.5rem + env(safe-area-inset-top));
+      }
+
+      body.menu-abierto .lateral { transform: translateX(0); }
+
+      .velo {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 30;
+        background: rgba(0,0,0,0.6);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 220ms ease;
+      }
+
+      body.menu-abierto .velo { opacity: 1; pointer-events: auto; }
+
+      .barra-movil {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        padding: calc(0.75rem + env(safe-area-inset-top)) 1.25rem 0.75rem;
+        background: rgba(20,18,19,0.94);
+        backdrop-filter: blur(8px);
+        border-bottom: 1px solid var(--linea);
+      }
+
+      .barra-movil .marca { padding: 0; gap: 0.6rem; }
+      .barra-movil .marca img { width: 34px; height: 34px; }
+      .barra-movil .marca-nombre { font-size: 1.25rem; }
+
+      .principal { padding-bottom: calc(5rem + env(safe-area-inset-bottom)); }
+
+      .encabezado { flex-direction: column; align-items: flex-start; padding: 1.75rem 0 1.5rem; }
+      .encabezado-logo { width: 200px; right: -60px; }
+
+
+      .nav-inferior {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        position: fixed;
+        z-index: 20;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        padding-bottom: env(safe-area-inset-bottom);
+        background: rgba(27,24,25,0.97);
+        backdrop-filter: blur(8px);
+        border-top: 1px solid var(--linea);
+      }
+
+      .nav-inferior a,
+      .nav-inferior button {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.2rem;
+        min-height: 60px;
+        font-size: 0.72rem;
+        color: var(--texto-2);
+      }
+
+      .nav-inferior [aria-current="page"] { color: var(--texto); }
+      .nav-inferior [aria-current="page"] .icono { color: var(--verde-texto); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="verificando">
+
+  <div class="app">
+
+    <!-- ============ BARRA LATERAL ============ -->
+    <aside class="lateral" id="lateral" aria-label="Navegación principal">
+      <a class="marca" href="index.html">
+        <img src="logo.webp" alt="">
+        <div>
+          <div class="marca-nombre">FUSSION FITNESS</div>
+          <div class="marca-lugar">Oro Verde</div>
+        </div>
+      </a>
+
+      <nav class="nav" id="navLateral"></nav>
+
+      <div class="lateral-pie">
+        <div class="admin-nombre" id="adminNombre"></div>
+        <div class="admin-rol">Administrador</div>
+        <button class="btn-salir" id="btnSalir" type="button">
+          <svg class="icono" viewBox="0 0 24 24"><use href="#i-salir"/></svg>
+          Cerrar sesión
+        </button>
+      </div>
+    </aside>
+
+    <div class="velo" id="velo"></div>
+
+    <div class="principal-wrap">
+
+      <header class="barra-movil">
+        <a class="marca" href="index.html">
+          <img src="logo.webp" alt="">
+          <div class="marca-nombre">FUSSION FITNESS</div>
+        </a>
+      </header>
+
+      <main class="principal">
+        <div class="contenido">
+          <!-- Encabezado -->
+          <section class="encabezado">
+            <img class="encabezado-logo" src="logo.webp" alt="" aria-hidden="true">
+            <div class="encabezado-texto">
+              <p class="antetitulo">Entrenamiento</p>
+              <h1 class="titulo-pagina">Turnos</h1>
+              <p class="bajada">Quiénes se anotaron en cada horario y cuántas personas entran por hora.</p>
+              <span class="trazo" aria-hidden="true"></span>
+            </div>
+            <div class="periodo" id="navDia">
+              <button class="btn btn-cuadrado" type="button" id="diaAnterior" aria-label="Día anterior"><svg class="icono" viewBox="0 0 24 24"><use href="#i-izq"/></svg></button>
+              <div class="periodo-nombre" id="diaNombre" aria-live="polite"></div>
+              <button class="btn btn-cuadrado" type="button" id="diaSiguiente" aria-label="Día siguiente"><svg class="icono" viewBox="0 0 24 24"><use href="#i-der"/></svg></button>
+              <button class="btn" type="button" id="diaHoy">Hoy</button>
+            </div>
+          </section>
+
+          <div class="pestanas-admin" role="tablist">
+            <button type="button" class="activa" data-vista="dia" role="tab">Anotados</button>
+            <button type="button" data-vista="cupos" role="tab">Cupos y reglas</button>
+          </div>
+
+          <div id="vistaDia">
+            <section class="resumen-dia" id="resumenDia"></section>
+            <section class="horas" id="horas"><p class="vacio-tabla">Cargando…</p></section>
+            <div class="leyenda-dia">
+              <span><i style="--c:#3ecf74"></i>Ya ingresó hoy por Recepción</span>
+              <span><i style="--c:#736b6d"></i>Todavía no ingresó</span>
+            </div>
+          </div>
+
+          <div id="vistaCupos" class="oculto">
+            <section class="tarjeta" style="margin-bottom:1rem">
+              <div class="tarjeta-cab">
+                <div>
+                  <h2 class="tarjeta-titulo">Cupo por hora</h2>
+                  <p class="tarjeta-sub">Cuántas personas pueden anotarse en cada horario. 0 o vacío = cerrado.</p>
+                </div>
+              </div>
+              <div class="herramientas-cupos">
+                <div class="campo">
+                  <label for="cupoTodos">Poner a todos</label>
+                  <input type="number" id="cupoTodos" min="0" max="500" placeholder="Ej: 15">
+                </div>
+                <div class="campo">
+                  <label for="cupoDias">En</label>
+                  <select id="cupoDias">
+                    <option value="abiertos">Los horarios abiertos</option>
+                    <option value="semana">Lunes a viernes, 8 a 21</option>
+                    <option value="sabado">Sábado, 8 a 21</option>
+                    <option value="todo">Toda la grilla</option>
+                  </select>
+                </div>
+                <button class="btn" type="button" id="aplicarCupo">Aplicar</button>
+              </div>
+              <div class="tarjeta-cuerpo grilla-cupos" id="grillaCupos"></div>
+              <div class="barra-guardar-cupos">
+                <p id="estadoCupos">Los cambios se aplican a los turnos nuevos. Los que ya se anotaron no se pierden.</p>
+                <button class="btn btn-primario" type="button" id="guardarCupos" disabled>Guardar cupos</button>
+              </div>
+              <div class="mensaje" id="mensajeCupos" style="margin:0 1.4rem 1rem"></div>
+            </section>
+
+            <section class="tarjeta">
+              <div class="tarjeta-cab"><div><h2 class="tarjeta-titulo">Reglas</h2><p class="tarjeta-sub">Para todos los socios</p></div></div>
+              <div class="tarjeta-cuerpo">
+                <div class="reglas">
+                  <div class="campo">
+                    <label for="reglaDias">Días que se pueden reservar</label>
+                    <input type="number" id="reglaDias" min="1" max="30">
+                    <span class="ayuda">Contando hoy. 7 = una semana.</span>
+                  </div>
+                  <div class="campo">
+                    <label for="reglaMax">Turnos por día por socio</label>
+                    <input type="number" id="reglaMax" min="1" max="5">
+                  </div>
+                  <div class="campo">
+                    <label>Lo que ven los alumnos</label>
+                    <label class="interruptor-fila"><input type="checkbox" id="reglaNombres"> Los nombres de los anotados</label>
+                    <span class="ayuda">Si lo desmarcás, ven solo cuántos lugares quedan.</span>
+                  </div>
+                </div>
+                <div style="display:flex;justify-content:flex-end;margin-top:1rem">
+                  <button class="btn btn-primario" type="button" id="guardarReglas">Guardar reglas</button>
+                </div>
+                <div class="mensaje" id="mensajeReglas"></div>
+              </div>
+            </section>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- ============ NAVEGACIÓN INFERIOR (solo celular) ============ -->
+  <nav class="nav-inferior" aria-label="Accesos rápidos">
+    <a href="index.html">
+      <svg class="icono" viewBox="0 0 24 24"><use href="#i-inicio"/></svg>Inicio
+    </a>
+    <a href="panel-general.html">
+      <svg class="icono" viewBox="0 0 24 24"><use href="#i-usuarios"/></svg>Socios
+    </a>
+    <a href="registro-pagos.html">
+      <svg class="icono" viewBox="0 0 24 24"><use href="#i-pago"/></svg>Pagos
+    </a>
+    <a href="rutinas.html">
+      <svg class="icono" viewBox="0 0 24 24"><use href="#i-rutinas"/></svg>Rutinas
+    </a>
+    <button type="button" id="btnMenu" aria-controls="lateral" aria-expanded="false">
+      <svg class="icono" viewBox="0 0 24 24"><use href="#i-menu"/></svg>Menú
+    </button>
+  </nav>
+  <!-- ============ ICONOS ============ -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <g id="i-inicio"><path d="M3.5 10.5 12 3.5l8.5 7V20a.5.5 0 0 1-.5.5h-5v-6h-6v6H4a.5.5 0 0 1-.5-.5z"/></g>
+      <g id="i-usuarios"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.7-3.5 3.3-5.5 6.5-5.5s5.8 2 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M17.5 14.6c2.1.4 3.5 2 4 4.4"/></g>
+      <g id="i-usuario-mas"><circle cx="10" cy="8" r="3.5"/><path d="M3.5 20c.7-3.5 3.3-5.5 6.5-5.5 1.4 0 2.7.4 3.8 1.1"/><path d="M19 13.5v6M16 16.5h6"/></g>
+      <g id="i-usuario-editar"><circle cx="10" cy="8" r="3.5"/><path d="M3.5 20c.7-3.5 3.3-5.5 6.5-5.5 1 0 1.9.2 2.7.5"/><path d="m15 20.5.6-2.6 4.6-4.6 2 2-4.6 4.6z"/></g>
+      <g id="i-pago"><rect x="2.5" y="5.5" width="19" height="13" rx="2"/><path d="M2.5 9.5h19M6.5 14.5h4"/></g>
+      <g id="i-caja"><path d="M3.5 20.5h17M6 20.5v-8M11 20.5V5M16 20.5v-11"/></g>
+      <g id="i-planes"><path d="M3.5 12.5V4.5a1 1 0 0 1 1-1h8l8 8a1 1 0 0 1 0 1.4l-7.6 7.6a1 1 0 0 1-1.4 0z"/><circle cx="8" cy="8" r="1.3"/></g>
+      <g id="i-rutinas"><path d="M6.5 6v12M17.5 6v12M3.5 9v6M20.5 9v6M6.5 12h11"/></g>
+      <g id="i-plantillas"><path d="m12 3.5-9 4.5 9 4.5 9-4.5z"/><path d="m3 12 9 4.5 9-4.5"/><path d="m3 16 9 4.5 9-4.5"/></g>
+      <g id="i-recepcion"><rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M8.5 20h7M12 16v4"/></g>
+      <g id="i-salir"><path d="M14.5 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4"/><path d="m10 8-4 4 4 4M6 12h10"/></g>
+      <g id="i-menu"><path d="M4 7h16M4 12h16M4 17h16"/></g>
+      <g id="i-chevron"><path d="m9.5 6 6 6-6 6"/></g>
+      <g id="i-turnos"><rect x="3.5" y="5" width="17" height="15" rx="1.5"/><path d="M3.5 9.5h17M8 3v4M16 3v4M12 12.5v3l2 1.2"/></g>
+      <g id="i-trofeo"><path d="M8 4h8v6a4 4 0 0 1-8 0zM8 6H4.5a3.5 3.5 0 0 0 3.8 4.2M16 6h3.5a3.5 3.5 0 0 1-3.8 4.2M12 14v3.5M8.5 20.5h7M10 17.5h4"/></g>
+      <g id="i-buscar"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></g>
+      <g id="i-mas"><path d="M12 5v14M5 12h14"/></g>
+      <g id="i-copiar"><rect x="8.5" y="8.5" width="11" height="11" rx="1.5"/><path d="M15.5 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5"/></g>
+      <g id="i-ojo"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></g>
+      <g id="i-enviar"><path d="M20.5 3.5 10 14M20.5 3.5l-6.5 17-4-6.5-6.5-4z"/></g>
+      <g id="i-enlace"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></g>
+      <g id="i-arriba"><path d="m6 15 6-6 6 6"/></g>
+      <g id="i-abajo"><path d="m6 9 6 6 6-6"/></g>
+      <g id="i-x"><path d="M6 6l12 12M18 6 6 18"/></g>
+      <g id="i-duplicar"><rect x="8.5" y="8.5" width="11" height="11" rx="1.5"/><path d="M15.5 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5M14 11.5v5M11.5 14h5"/></g>
+      <g id="i-papelera"><path d="M4.5 7h15M9.5 7V5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v2M6.5 7l1 12.5a1 1 0 0 0 1 .9h7a1 1 0 0 0 1-.9L17.5 7"/></g>
+      <g id="i-check"><path d="m5 12.5 4.5 4.5L19 7.5"/></g>
+      <g id="i-info"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8h.01"/></g>
+      <g id="i-izq"><path d="m14.5 6-6 6 6 6"/></g>
+      <g id="i-der"><path d="m9.5 6 6 6-6 6"/></g>
+    </defs>
+  </svg>
+  <script>
+    const SUPABASE_URL = 'https://goiwkkrumuuxngknxhgb.supabase.co'
+    const SUPABASE_KEY = 'sb_publishable_09Ni6AtnSWBrCAbhsGdFmQ_BYKp4A6-'
+    const { createClient } = supabase
+    const db = createClient(SUPABASE_URL, SUPABASE_KEY)
+
+    /* ============================================================
+       NAVEGACIÓN (misma lista de módulos que index.html)
+       ============================================================ */
+    const MODULOS = [
+      { titulo: 'Socios', items: [
+        { nombre: 'Listado de socios', href: 'panel-general.html', icono: 'i-usuarios' },
+        { nombre: 'Alta de socio', href: 'alta-socio.html', icono: 'i-usuario-mas' },
+        { nombre: 'Editar socio', href: 'editar-socio.html', icono: 'i-usuario-editar' }
+      ]},
+      { titulo: 'Pagos y caja', items: [
+        { nombre: 'Registrar pago', href: 'registro-pagos.html', icono: 'i-pago' },
+        { nombre: 'Caja', href: 'caja.html', icono: 'i-caja' },
+        { nombre: 'Planes y precios', href: 'planes.html', icono: 'i-planes' }
+      ]},
+      { titulo: 'Entrenamiento', items: [
+        { nombre: 'Rutinas', href: 'rutinas.html', icono: 'i-rutinas' },
+        { nombre: 'Plantillas de rutina', href: 'plantillas.html', icono: 'i-plantillas' },
+        { nombre: 'Gym Levels', href: 'gym-levels.html', icono: 'i-trofeo' },
+        { nombre: 'Turnos', href: 'turnos.html', icono: 'i-turnos' }
+      ]}
+    ]
+
+    const PAGINA_ACTUAL = 'turnos.html'
+    const icono = (id, clase = 'icono') => `<svg class="${clase}" viewBox="0 0 24 24"><use href="#${id}"/></svg>`
+    const actual = href => href === PAGINA_ACTUAL ? ' aria-current="page"' : ''
+
+    document.getElementById('navLateral').innerHTML = `
+      <div class="nav-grupo">
+        <a class="nav-link" href="index.html">${icono('i-inicio')}Inicio</a>
+        <a class="nav-link" href="recepcion.html">${icono('i-recepcion')}Recepción</a>
+      </div>` + MODULOS.map(g => `
+      <div class="nav-grupo">
+        <div class="nav-grupo-titulo">${g.titulo}</div>
+        ${g.items.map(i => `<a class="nav-link" href="${i.href}"${actual(i.href)}>${icono(i.icono)}${i.nombre}</a>`).join('')}
+      </div>`).join('')
+
+    const btnMenu = document.getElementById('btnMenu')
+    function alternarMenu(abrir) {
+      document.body.classList.toggle('menu-abierto', abrir)
+      btnMenu.setAttribute('aria-expanded', String(abrir))
+    }
+    btnMenu.addEventListener('click', () => alternarMenu(!document.body.classList.contains('menu-abierto')))
+    document.getElementById('velo').addEventListener('click', () => alternarMenu(false))
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') alternarMenu(false) })
+
+    document.getElementById('btnSalir').addEventListener('click', cerrarSesion)
+
+
+    /* ============================================================
+       UTILIDADES
+       ============================================================ */
+    const escapar = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+    // Redondea a centavos antes de decidir si muestra decimales (48000 × 1,15 da 55199,999…)
+    const pesos = n => { const v = Math.round(Number(n || 0) * 100) / 100; return v.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: v % 1 ? 2 : 0, maximumFractionDigits: 2 }) }
+    const nombreBonito = t => String(t || '').trim().toLowerCase().replace(/(^|[\s'-])\S/g, c => c.toUpperCase())
+    const fechaCorta = iso => iso ? new Date(String(iso).slice(0, 10) + 'T00:00:00').toLocaleDateString('es-AR') : ''
+    const fechaLarga = iso => iso ? new Date(String(iso).slice(0, 10) + 'T00:00:00').toLocaleDateString('es-AR', { day: 'numeric', month: 'long' }) : ''
+
+    // Fecha de hoy en la hora de la PC (no en UTC: después de las 21 sería mañana)
+    function hoyLocal() {
+      const d = new Date()
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    }
+
+    function iniciales(nombre) {
+      const p = (nombre || '').trim().split(/\s+/)
+      return ((p[0]?.[0] || '') + (p.length > 1 ? p[p.length - 1][0] : '')).toUpperCase()
+    }
+
+    function formatearTelefonoWhatsapp(telefono) {
+      let digits = String(telefono || '').replace(/\D/g, '')
+      if (!digits) return null
+      if (digits.startsWith('54')) digits = digits.slice(2)
+      if (digits.startsWith('9')) digits = digits.slice(1)
+      if (digits.startsWith('0')) digits = digits.slice(1)
+      digits = digits.replace(/^(\d{2,4})15/, '$1')
+      return digits.length >= 8 ? `549${digits}` : null
+    }
+
+    function mostrarMensaje(id, texto, tipo) {
+      const el = document.getElementById(id)
+      el.className = `mensaje ${tipo} visible`
+      el.textContent = texto
+    }
+
+    function ocultarMensaje(id) {
+      document.getElementById(id).className = 'mensaje'
+    }
+
+    /* ============================================================
+       ACCESO
+       ============================================================ */
+    async function verificarAcceso() {
+      const { data } = await db.auth.getSession()
+      if (!data.session) {
+        window.location.href = 'login.html'
+        return
+      }
+      const { data: admin } = await db
+        .from('administradores')
+        .select('nombre')
+        .eq('id', data.session.user.id)
+        .eq('activo', true)
+        .limit(1)
+
+      if (!admin || admin.length === 0) {
+        await db.auth.signOut()
+        window.location.href = 'login.html'
+        return
+      }
+
+      document.getElementById('adminNombre').textContent = admin[0].nombre || 'Administrador'
+      document.body.classList.remove('verificando')
+      iniciarPagina()
+    }
+
+    async function cerrarSesion() {
+      await db.auth.signOut()
+      window.location.href = 'login.html'
+    }
+
+    /* ============================================================
+       TURNOS — panel del profe
+       Datos (migración 010): turnos_admin_dia(fecha), tablas
+       turnos_franjas, turnos_config y turnos_reservas (solo admins).
+       ============================================================ */
+    const DIAS = ['', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
+    const HORAS = Array.from({ length: 17 }, (_, i) => 6 + i)   // grilla de 6 a 22
+    const dosDig = n => String(n).padStart(2, '0')
+    const isoDe = d => `${d.getFullYear()}-${dosDig(d.getMonth() + 1)}-${dosDig(d.getDate())}`
+    let fecha = hoyLocal()
+    let franjas = {}        // 'dia-hora' → { capacidad, activa }
+    let originales = {}
+
+    async function iniciarPagina() {
+      document.getElementById('diaAnterior').addEventListener('click', () => moverDia(-1))
+      document.getElementById('diaSiguiente').addEventListener('click', () => moverDia(1))
+      document.getElementById('diaHoy').addEventListener('click', () => { fecha = hoyLocal(); cargarDia() })
+      document.querySelectorAll('.pestanas-admin button').forEach(b => b.addEventListener('click', () => verPestana(b.dataset.vista)))
+      await cargarDia()
+      setInterval(() => { if (!document.getElementById('vistaDia').classList.contains('oculto')) cargarDia(true) }, 60000)
+    }
+
+    function verPestana(v) {
+      document.querySelectorAll('.pestanas-admin button').forEach(b => b.classList.toggle('activa', b.dataset.vista === v))
+      document.getElementById('vistaDia').classList.toggle('oculto', v !== 'dia')
+      document.getElementById('vistaCupos').classList.toggle('oculto', v !== 'cupos')
+      document.getElementById('navDia').style.visibility = v === 'dia' ? '' : 'hidden'
+      if (v === 'cupos') cargarCupos()
+    }
+
+    function moverDia(paso) {
+      const d = new Date(fecha + 'T00:00:00')
+      d.setDate(d.getDate() + paso)
+      fecha = isoDe(d)
+      cargarDia()
+    }
+
+    // El nombre que ven los alumnos solo se muestra si eligió un apodo (no "Juan P.")
+    function tieneApodo(r) {
+      if (!r.nombre_publico) return false
+      const p = String(r.nombre || '').trim().split(/\s+/)
+      const porDefecto = nombreBonito(p[0] || '') + (p.length > 1 ? ` ${p[p.length - 1][0].toUpperCase()}.` : '')
+      return r.nombre_publico !== porDefecto
+    }
+
+    /* ---------- Vista del día ---------- */
+    async function cargarDia(silencioso) {
+      const d = new Date(fecha + 'T00:00:00')
+      const esHoy = fecha === hoyLocal()
+      const texto = d.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })
+      document.getElementById('diaNombre').textContent = esHoy ? `Hoy, ${texto}` : texto.charAt(0).toUpperCase() + texto.slice(1)
+      const { data, error } = await db.rpc('turnos_admin_dia', { p_fecha: fecha })
+      if (error) {
+        if (silencioso) return
+        console.warn(error.message)
+        document.getElementById('resumenDia').innerHTML = ''
+        document.getElementById('horas').innerHTML = `<div class="tarjeta vacio-tabla"><strong>Turnos todavía no está disponible</strong>Falta aplicar en Supabase la migración 010 (turnos).</div>`
+        return
+      }
+      renderizarDia(data)
+    }
+
+    function renderizarDia(d) {
+      const abiertas = d.franjas.filter(f => f.activa && f.capacidad > 0)
+      const capTotal = abiertas.reduce((t, f) => t + f.capacidad, 0)
+      const masLlena = [...d.franjas].sort((a, b) => b.anotados - a.anotados)[0]
+      const vinieron = d.franjas.reduce((t, f) => t + f.reservas.filter(r => r.vino).length, 0)
+      const ahora = new Date(d.ahora)
+      const horaActual = d.fecha === d.ahora.slice(0, 10) ? ahora.getHours() : null
+      const esPasado = d.fecha < d.ahora.slice(0, 10)
+
+      document.getElementById('resumenDia').innerHTML = `
+        <div class="dato-dia"><span>Anotados</span><strong>${d.total}</strong><small>${capTotal ? `de ${capTotal} lugares` : 'sin horarios abiertos'}</small></div>
+        <div class="dato-dia"><span>Ocupación</span><strong>${capTotal ? Math.round((d.total / capTotal) * 100) : 0}%</strong><small>${abiertas.length} ${abiertas.length === 1 ? 'horario abierto' : 'horarios abiertos'}</small></div>
+        <div class="dato-dia"><span>Horario más pedido</span><strong>${masLlena && masLlena.anotados ? dosDig(masLlena.hora) + ':00' : '–'}</strong><small>${masLlena && masLlena.anotados ? `${masLlena.anotados} anotados` : 'nadie anotado'}</small></div>
+        <div class="dato-dia"><span>Ya ingresaron</span><strong>${vinieron}</strong><small>de los anotados</small></div>`
+
+      const cont = document.getElementById('horas')
+      if (!d.franjas.length) {
+        cont.innerHTML = `<div class="tarjeta vacio-tabla"><strong>No se toman turnos este día</strong>Podés abrir horarios en "Cupos y reglas".</div>`
+        return
+      }
+
+      cont.innerHTML = d.franjas.map(f => {
+        const pasada = esPasado || (horaActual !== null && f.hora < horaActual)
+        const enCurso = horaActual === f.hora
+        const lleno = f.capacidad > 0 && f.anotados >= f.capacidad
+        const cerrada = !f.activa || f.capacidad <= 0
+        return `
+          <div class="hora-fila${pasada ? ' pasada' : ''}${enCurso ? ' ahora' : ''}${cerrada ? ' cerrada' : ''}">
+            <div class="hora-num">${dosDig(f.hora)}:00<small>a ${dosDig(f.hora + 1)}:00</small>${enCurso ? '<span class="ahora-tag">AHORA</span>' : ''}</div>
+            <div class="ocupacion">
+              <div class="ocupacion-num"><strong>${f.anotados}${cerrada ? '' : `<span style="font-size:0.9rem;color:var(--texto-3)"> / ${f.capacidad}</span>`}</strong><span>${cerrada ? 'Cerrado' : lleno ? 'Completo' : f.capacidad - f.anotados === 1 ? '1 libre' : `${f.capacidad - f.anotados} libres`}</span></div>
+              <div class="ocupacion-pista"><div class="ocupacion-fill${lleno ? ' lleno' : ''}" style="width:${f.capacidad ? Math.min(100, (f.anotados / f.capacidad) * 100) : 0}%"></div></div>
+            </div>
+            ${f.reservas.length
+              ? `<div class="anotados">${f.reservas.map(r => `
+                  <span class="anotado${r.vino ? ' vino' : ''}" title="DNI ${escapar(r.dni)}${r.telefono ? ' · ' + escapar(r.telefono) : ''}${r.vino ? ' · ya ingresó' : ''}">
+                    <span class="vino-marca" aria-label="${r.vino ? 'Ya ingresó' : 'Todavía no ingresó'}"></span>
+                    <span class="anotado-nombre">${escapar(nombreBonito(r.nombre))}</span>
+                    ${tieneApodo(r) ? `<span class="anotado-alias" title="Así lo ven los alumnos">${escapar(r.nombre_publico)}</span>` : ''}
+                    ${pasada ? '' : `<button type="button" class="quitar" data-quitar="${r.id}" title="Cancelar este turno" aria-label="Cancelar el turno de ${escapar(nombreBonito(r.nombre))}"><svg class="icono" viewBox="0 0 24 24"><use href="#i-x"/></svg></button>`}
+                  </span>`).join('')}</div>`
+              : '<div class="sin-anotados">Nadie anotado</div>'}
+          </div>`
+      }).join('')
+    }
+
+    // Cancelar un turno desde el panel: primer toque pide confirmación
+    document.getElementById('horas').addEventListener('click', async e => {
+      const b = e.target.closest('[data-quitar]')
+      if (!b) return
+      if (!b.classList.contains('confirmar')) {
+        document.querySelectorAll('.quitar.confirmar').forEach(x => { x.classList.remove('confirmar'); x.innerHTML = '<svg class="icono" viewBox="0 0 24 24"><use href="#i-x"/></svg>' })
+        b.classList.add('confirmar')
+        b.textContent = 'Cancelar turno'
+        setTimeout(() => { if (b.isConnected && b.classList.contains('confirmar')) { b.classList.remove('confirmar'); b.innerHTML = '<svg class="icono" viewBox="0 0 24 24"><use href="#i-x"/></svg>' } }, 4000)
+        return
+      }
+      b.disabled = true
+      const { error } = await db.from('turnos_reservas')
+        .update({ cancelado_en: new Date().toISOString(), cancelado_por: 'admin' })
+        .eq('id', b.dataset.quitar)
+      if (error) { b.disabled = false; b.textContent = 'No se pudo'; return }
+      cargarDia()
+    })
+
+    /* ---------- Cupos ---------- */
+    async function cargarCupos() {
+      const [rF, rC] = await Promise.all([
+        db.from('turnos_franjas').select('*'),
+        db.from('turnos_config').select('*')
+      ])
+      if (rF.error) {
+        document.getElementById('grillaCupos').innerHTML = '<p class="vacio-tabla">No se pudieron cargar los cupos. ¿Está aplicada la migración 010?</p>'
+        return
+      }
+      franjas = {}
+      ;(rF.data || []).forEach(f => { franjas[`${f.dia_semana}-${f.hora}`] = f.activa ? f.capacidad : 0 })
+      originales = { ...franjas }
+      renderizarGrilla()
+
+      const cfg = {}
+      ;(rC.data || []).forEach(c => { cfg[c.clave] = Number(c.valor) })
+      document.getElementById('reglaDias').value = cfg.dias_anticipacion ?? 7
+      document.getElementById('reglaMax').value = cfg.max_por_dia ?? 1
+      document.getElementById('reglaNombres').checked = (cfg.mostrar_nombres ?? 1) === 1
+    }
+
+    function renderizarGrilla() {
+      document.getElementById('grillaCupos').innerHTML = `
+        <table class="tabla-cupos">
+          <thead><tr><th class="hora-col">Hora</th>${DIAS.slice(1).map(d => `<th>${d}</th>`).join('')}</tr></thead>
+          <tbody>${HORAS.map(h => `
+            <tr>
+              <th class="hora-col">${dosDig(h)}:00</th>
+              ${[1, 2, 3, 4, 5, 6, 7].map(d => {
+                const v = franjas[`${d}-${h}`] || 0
+                return `<td><input class="cupo${v ? '' : ' cerrado'}" type="number" min="0" max="500" inputmode="numeric" data-k="${d}-${h}" value="${v || ''}" placeholder="–" aria-label="${DIAS[d]} ${dosDig(h)}:00"></td>`
+              }).join('')}
+            </tr>`).join('')}
+          </tbody>
+        </table>`
+      marcarCambios()
+    }
+
+    function marcarCambios() {
+      let n = 0
+      document.querySelectorAll('.cupo').forEach(i => {
+        const v = Math.max(0, parseInt(i.value) || 0)
+        const cambio = v !== (originales[i.dataset.k] || 0)
+        if (cambio) n++
+        i.classList.toggle('cambiado', cambio)
+        i.classList.toggle('cerrado', !v)
+      })
+      document.getElementById('guardarCupos').disabled = !n
+      document.getElementById('estadoCupos').textContent = n
+        ? `${n} ${n === 1 ? 'horario cambiado' : 'horarios cambiados'} sin guardar.`
+        : 'Los cambios se aplican a los turnos nuevos. Los que ya se anotaron no se pierden.'
+    }
+
+    document.getElementById('grillaCupos').addEventListener('input', e => {
+      if (!e.target.classList.contains('cupo')) return
+      franjas[e.target.dataset.k] = Math.max(0, parseInt(e.target.value) || 0)
+      marcarCambios()
+    })
+
+    document.getElementById('aplicarCupo').addEventListener('click', () => {
+      const v = parseInt(document.getElementById('cupoTodos').value)
+      if (!(v >= 0)) return document.getElementById('cupoTodos').focus()
+      const modo = document.getElementById('cupoDias').value
+      document.querySelectorAll('.cupo').forEach(i => {
+        const [d, h] = i.dataset.k.split('-').map(Number)
+        const entra = modo === 'todo' ||
+          (modo === 'abiertos' && (franjas[i.dataset.k] || 0) > 0) ||
+          (modo === 'semana' && d <= 5 && h >= 8 && h <= 20) ||
+          (modo === 'sabado' && d === 6 && h >= 8 && h <= 20)
+        if (entra) { i.value = v || ''; franjas[i.dataset.k] = v }
+      })
+      marcarCambios()
+    })
+
+    document.getElementById('guardarCupos').addEventListener('click', async () => {
+      const filas = Object.keys(franjas)
+        .filter(k => (franjas[k] || 0) !== (originales[k] || 0))
+        .map(k => {
+          const [dia_semana, hora] = k.split('-').map(Number)
+          const v = franjas[k] || 0
+          return { dia_semana, hora, capacidad: v || 15, activa: v > 0 }
+        })
+      // Un horario cerrado guarda su último cupo para cuando se vuelva a abrir
+      filas.forEach(f => { if (!f.activa && originales[`${f.dia_semana}-${f.hora}`]) f.capacidad = originales[`${f.dia_semana}-${f.hora}`] })
+      const btn = document.getElementById('guardarCupos')
+      btn.disabled = true
+      btn.textContent = 'Guardando…'
+      const { error } = await db.from('turnos_franjas').upsert(filas, { onConflict: 'dia_semana,hora' })
+      btn.textContent = 'Guardar cupos'
+      if (error) {
+        btn.disabled = false
+        return mostrarMensaje('mensajeCupos', 'No se pudo guardar: ' + error.message, 'error')
+      }
+      mostrarMensaje('mensajeCupos', 'Cupos guardados.', 'exito')
+      setTimeout(() => ocultarMensaje('mensajeCupos'), 3000)
+      originales = { ...franjas }
+      marcarCambios()
+    })
+
+    document.getElementById('guardarReglas').addEventListener('click', async () => {
+      const dias = parseInt(document.getElementById('reglaDias').value)
+      const max = parseInt(document.getElementById('reglaMax').value)
+      if (!(dias >= 1 && dias <= 30)) return mostrarMensaje('mensajeReglas', 'Los días van de 1 a 30.', 'error')
+      if (!(max >= 1 && max <= 5)) return mostrarMensaje('mensajeReglas', 'Los turnos por día van de 1 a 5.', 'error')
+      const btn = document.getElementById('guardarReglas')
+      btn.disabled = true
+      const cambios = [
+        ['dias_anticipacion', dias],
+        ['max_por_dia', max],
+        ['mostrar_nombres', document.getElementById('reglaNombres').checked ? 1 : 0]
+      ]
+      const resultados = await Promise.all(cambios.map(([clave, valor]) => db.from('turnos_config').update({ valor }).eq('clave', clave)))
+      btn.disabled = false
+      const error = resultados.find(r => r.error)
+      if (error) return mostrarMensaje('mensajeReglas', 'No se pudieron guardar: ' + error.error.message, 'error')
+      mostrarMensaje('mensajeReglas', 'Reglas guardadas.', 'exito')
+      setTimeout(() => ocultarMensaje('mensajeReglas'), 3000)
+    })
+
+    verificarAcceso()
+  </script>
+</body>
+</html>

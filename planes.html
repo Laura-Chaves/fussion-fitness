@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#141213">
+  <title>Planes y precios | Fussion Fitness</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    /* ============================================================
+       TOKENS DE DISEÑO — se van a mover a css/tokens.css cuando
+       rediseñemos el resto de las páginas.
+       ============================================================ */
+    :root {
+      --fondo: #141213;
+      --superficie: #1b1819;
+      --elevada: #241f21;
+      --linea: #2f292b;
+      --linea-suave: #231e20;
+      --texto: #f3f0ef;
+      --texto-2: #a39a9c;
+      --texto-3: #736b6d;
+      --verde: #11803e;
+      --verde-hover: #169a4b;
+      --verde-texto: #3ddc84;
+      --peligro: #cc0000;
+      --peligro-hover: #e00b0b;
+      --peligro-texto: #ff5a52;
+      --al-dia: #38bdf8;
+      --al-dia-texto: #7dd3fc;
+
+      --f-titulo: 'Barlow Condensed', 'Arial Narrow', 'Roboto Condensed', sans-serif;
+      --f-texto: 'Barlow', 'Segoe UI', system-ui, sans-serif;
+
+      --ancho-lateral: 248px;
+      --radio: 6px;
+      --transicion: 160ms ease;
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { -webkit-text-size-adjust: 100%; }
+
+    body {
+      font-family: var(--f-texto);
+      font-size: 16px;
+      line-height: 1.5;
+      background: var(--fondo);
+      color: var(--texto);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+    svg { flex-shrink: 0; }
+
+    :focus-visible {
+      outline: 2px solid var(--verde-texto);
+      outline-offset: 2px;
+      border-radius: 2px;
+    }
+
+    /* Mientras se verifica la sesión no mostramos nada */
+    body.verificando .app { visibility: hidden; }
+
+    .icono {
+      width: 20px;
+      height: 20px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.75;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* ============================================================
+       ESTRUCTURA
+       ============================================================ */
+    .app {
+      display: grid;
+      grid-template-columns: var(--ancho-lateral) 1fr;
+      min-height: 100vh;
+    }
+
+    /* ---------- Barra lateral ---------- */
+    .lateral {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: var(--superficie);
+      border-right: 1px solid var(--linea);
+      padding: 1.5rem 0 1.25rem;
+      overflow-y: auto;
+    }
+
+    .marca {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0 1.25rem 1.5rem;
+    }
+
+    .marca img {
+      width: 44px;
+      height: 44px;
+      object-fit: contain;
+    }
+
+    .marca-nombre {
+      font-family: var(--f-titulo);
+      font-weight: 700;
+      font-size: 1.45rem;
+      letter-spacing: 0.06em;
+      line-height: 1;
+      color: var(--verde-texto);
+    }
+
+    .marca-lugar {
+      font-size: 0.8rem;
+      color: var(--texto-2);
+      margin-top: 0.2rem;
+    }
+
+    .nav { flex: 1; }
+
+    .nav-grupo { padding: 0.9rem 0 0.4rem; }
+
+    .nav-grupo-titulo {
+      font-family: var(--f-titulo);
+      font-weight: 600;
+      font-size: 0.95rem;
+      letter-spacing: 0.02em;
+      color: var(--texto-3);
+      padding: 0 1.25rem 0.35rem;
+    }
+
+    .nav-link {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.55rem 1.25rem;
+      font-size: 0.95rem;
+      color: var(--texto-2);
+      transition: color var(--transicion), background var(--transicion);
+    }
+
+    .nav-link:hover { color: var(--texto); background: var(--elevada); }
+
+    .nav-link[aria-current="page"] {
+      color: var(--texto);
+      background: var(--elevada);
+    }
+
+    .nav-link[aria-current="page"]::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 6px;
+      bottom: 6px;
+      width: 3px;
+      background: var(--verde);
+    }
+
+    .lateral-pie {
+      border-top: 1px solid var(--linea);
+      padding: 1rem 1.25rem 0;
+      margin-top: 1rem;
+    }
+
+    .admin-nombre {
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .admin-rol {
+      font-size: 0.8rem;
+      color: var(--texto-3);
+      margin-bottom: 0.75rem;
+    }
+
+    .btn-salir {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.9rem;
+      color: var(--texto-2);
+      padding: 0.35rem 0;
+      transition: color var(--transicion);
+    }
+
+    .btn-salir:hover { color: var(--peligro-texto); }
+
+    /* ---------- Barra superior e inferior (solo celular) ---------- */
+    .barra-movil,
+    .nav-inferior,
+    .velo { display: none; }
+
+    /* ============================================================
+       PÁGINA INTERNA
+       ============================================================ */
+    .principal {
+      min-width: 0;
+      padding: 0 clamp(1.25rem, 3.5vw, 3rem) 7rem;
+    }
+
+    .contenido { max-width: 1240px; }
+
+    /* Evita que el contenido ancho empuje la página hacia los costados */
+    .principal-wrap,
+    .espacio > * { min-width: 0; }
+
+    .oculto { display: none !important; }
+
+    /* ---------- Encabezado de página (león gris) ---------- */
+    .encabezado {
+      position: relative;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 1.5rem;
+      padding: clamp(2rem, 5vh, 3.25rem) 0 2rem;
+      overflow: hidden;
+    }
+
+    .encabezado-logo {
+      position: absolute;
+      right: 180px;
+      top: 50%;
+      width: 300px;
+      transform: translateY(-50%);
+      opacity: 0.07;
+      filter: grayscale(1) brightness(1.6);
+      clip-path: inset(0 0 7% 0);
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .encabezado-texto { position: relative; }
+
+    .antetitulo {
+      font-size: 0.95rem;
+      color: var(--texto-2);
+      margin-bottom: 0.25rem;
+    }
+
+    .titulo-pagina {
+      font-family: var(--f-titulo);
+      font-weight: 700;
+      font-size: clamp(2.6rem, 5vw, 3.6rem);
+      line-height: 0.95;
+    }
+
+    .bajada {
+      color: var(--texto-2);
+      margin-top: 0.6rem;
+      max-width: 46ch;
+    }
+
+    .trazo {
+      display: block;
+      width: 72px;
+      height: 6px;
+      margin-top: 1.1rem;
+      background: var(--verde);
+      transform: skewX(-24deg);
+    }
+
+    /* ---------- Botones ---------- */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      height: 44px;
+      padding: 0 1.1rem;
+      border-radius: var(--radio);
+      border: 1px solid var(--linea);
+      background: var(--superficie);
+      font-weight: 600;
+      font-size: 0.95rem;
+      white-space: nowrap;
+      transition: background var(--transicion), border-color var(--transicion), color var(--transicion);
+    }
+
+    .btn:hover { background: var(--elevada); border-color: #4a3f42; }
+    .btn .icono { width: 18px; height: 18px; }
+
+    .btn-primario {
+      background: var(--verde);
+      border-color: var(--verde-texto);
+      color: #fff;
+    }
+
+    .btn-primario:hover { background: var(--verde-hover); border-color: var(--verde-hover); }
+
+    .btn-primario:disabled {
+      background: var(--elevada);
+      border-color: var(--linea);
+      color: var(--texto-3);
+      cursor: wait;
+    }
+
+    .btn-fantasma {
+      background: none;
+      border-color: transparent;
+      color: var(--texto-2);
+    }
+
+    .btn-fantasma:hover { background: var(--elevada); color: var(--texto); border-color: transparent; }
+
+    .btn-icono {
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      border-radius: var(--radio);
+      color: var(--texto-3);
+      transition: color var(--transicion), background var(--transicion);
+    }
+
+    .btn-icono:hover { color: var(--texto); background: var(--elevada); }
+    .btn-icono.peligro:hover { color: var(--peligro-texto); background: rgba(204, 0, 0, 0.12); }
+    .btn-icono .icono { width: 17px; height: 17px; }
+    .btn-icono:disabled { opacity: 0.3; pointer-events: none; }
+
+
+    /* ---------- Mensajes ---------- */
+    .mensaje { display: none; margin-top: 0.9rem; padding: 0.75rem 1rem; border-radius: var(--radio); font-size: 0.95rem; }
+    .mensaje.visible { display: block; }
+    .mensaje.error  { color: #ffb3ad; background: rgba(204, 0, 0, 0.14); border: 1px solid rgba(255, 90, 82, 0.35); }
+    .mensaje.exito  { color: #9ff0bd; background: rgba(62, 207, 116, 0.1); border: 1px solid rgba(62, 207, 116, 0.35); }
+    .mensaje.aviso  { color: #f5d08a; background: rgba(245, 181, 68, 0.1); border: 1px solid rgba(245, 181, 68, 0.35); }
+
+    /* ---------- Estado de cuota (mismos colores que Registrar pago) ---------- */
+    .estado-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 0.15rem 0.5rem;
+      border-radius: 3px;
+      white-space: nowrap;
+    }
+
+    .estado-tag::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .estado-tag.al_dia        { color: #7dd3fc; background: rgba(56, 189, 248, 0.12); }
+    .estado-tag.por_vencer    { color: #f5c46b; background: rgba(245, 181, 68, 0.13); }
+    .estado-tag.vencida       { color: #ff8a83; background: rgba(204, 0, 0, 0.16); }
+    .estado-tag.pendiente     { color: #f5c46b; background: rgba(245, 181, 68, 0.13); }
+    .estado-tag.sin_membresia { color: var(--texto-2); background: rgba(255, 255, 255, 0.06); }
+    .estado-tag.baja          { color: var(--texto-3); background: rgba(255, 255, 255, 0.04); }
+
+    /* ---------- Formularios ---------- */
+    .campo { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
+    .campo label { font-size: 0.85rem; font-weight: 600; color: var(--texto-2); }
+    .campo label .obligatorio { color: var(--verde-texto); }
+    .campo .ayuda { font-size: 0.8rem; color: var(--texto-3); }
+
+    .campo input, .campo select, .campo textarea {
+      width: 100%;
+      height: 46px;
+      padding: 0 0.9rem;
+      font: inherit;
+      color: var(--texto);
+      background: var(--fondo);
+      border: 1px solid var(--linea);
+      border-radius: var(--radio);
+      outline: none;
+      color-scheme: dark;
+      transition: border-color var(--transicion);
+    }
+
+    .campo textarea { height: auto; min-height: 84px; padding: 0.7rem 0.9rem; resize: vertical; }
+    .campo input:focus, .campo select:focus, .campo textarea:focus { border-color: var(--verde-texto); }
+    .campo input.invalido { border-color: var(--peligro-texto); }
+
+    .tarjeta {
+      border-radius: 12px;
+      border: 1px solid var(--linea);
+      background: var(--superficie);
+    }
+
+    .tarjeta-cab {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1.1rem 1.4rem;
+      border-bottom: 1px solid var(--linea);
+    }
+
+    .tarjeta-titulo { font-family: var(--f-titulo); font-weight: 600; font-size: 1.4rem; line-height: 1.1; }
+    .tarjeta-sub { font-size: 0.85rem; color: var(--texto-3); margin-top: 0.1rem; }
+    .tarjeta-cuerpo { padding: 1.25rem 1.4rem 1.4rem; }
+
+    .avatar-ini {
+      flex: none;
+      display: grid;
+      place-items: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      font-family: var(--f-titulo);
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--texto);
+      background: linear-gradient(145deg, #3a2f32, #241f21);
+      border: 1px solid var(--linea);
+    }
+
+    .vacio-tabla { padding: 2.5rem 1.25rem; text-align: center; color: var(--texto-3); }
+    .vacio-tabla strong { display: block; color: var(--texto); font-size: 1.05rem; margin-bottom: 0.25rem; }
+
+    /* ============================================================
+       PLANES Y PRECIOS
+       ============================================================ */
+    .planes-grilla {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 0.9rem;
+      margin-bottom: 2rem;
+    }
+
+    .plan {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      padding: 1.3rem 1.3rem 1.1rem;
+      border-radius: 12px;
+      border: 1px solid var(--linea);
+      background:
+        radial-gradient(ellipse 80% 60% at 100% 0%, rgba(0, 176, 72, 0.1), transparent 70%),
+        var(--superficie);
+      overflow: hidden;
+    }
+
+    .plan::before {
+      content: '';
+      position: absolute;
+      left: 0; right: 0; top: 0;
+      height: 3px;
+      background: var(--verde);
+    }
+
+    .plan.inactivo { background: var(--superficie); opacity: 0.7; }
+    .plan.inactivo::before { background: var(--linea); }
+
+    .plan-nombre { font-family: var(--f-titulo); font-weight: 600; font-size: 1.4rem; line-height: 1.1; padding-right: 2rem; }
+
+    .plan-precio {
+      margin-top: 0.5rem;
+      font-family: var(--f-titulo);
+      font-weight: 700;
+      font-size: 2.6rem;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .plan-precio small { font-family: var(--f-texto); font-size: 0.85rem; font-weight: 500; color: var(--texto-3); margin-left: 0.25rem; }
+
+    .plan-datos { margin-top: 1rem; border-top: 1px solid var(--linea); }
+    .plan-dato { display: flex; justify-content: space-between; gap: 1rem; padding: 0.5rem 0; border-bottom: 1px solid var(--linea-suave); font-size: 0.9rem; }
+    .plan-dato span:first-child { color: var(--texto-3); }
+    .plan-dato span:last-child { font-weight: 600; text-align: right; }
+
+    .plan-socios {
+      position: absolute;
+      top: 1.15rem;
+      right: 1.15rem;
+      display: grid;
+      place-items: center;
+      min-width: 44px;
+      padding: 0.3rem 0.5rem;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      text-align: center;
+    }
+
+    .plan-socios strong { font-family: var(--f-titulo); font-size: 1.3rem; line-height: 1; }
+    .plan-socios span { font-size: 0.66rem; color: var(--texto-3); text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .plan-acciones { display: flex; gap: 0.5rem; margin-top: 1rem; }
+    .plan-acciones .btn { flex: 1; height: 40px; font-size: 0.9rem; }
+    .btn.confirmar { color: #fff; background: var(--peligro); border-color: var(--peligro); }
+
+    .seccion-titulo { font-family: var(--f-titulo); font-weight: 600; font-size: 1.5rem; margin-bottom: 0.9rem; }
+    .seccion-titulo span { color: var(--texto-3); font-weight: 500; }
+
+    /* Ventana para crear o editar */
+    .velo-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      display: grid;
+      place-items: center;
+      padding: 1rem;
+      background: rgba(0, 0, 0, 0.65);
+      animation: aparecer 160ms ease both;
+    }
+
+    @keyframes aparecer { from { opacity: 0; } }
+
+    .modal {
+      width: min(460px, 100%);
+      border-radius: 14px;
+      border: 1px solid var(--linea);
+      background: var(--superficie);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+      animation: subir 220ms cubic-bezier(.2,.8,.2,1) both;
+    }
+
+    @keyframes subir { from { transform: translateY(16px); opacity: 0.6; } }
+
+    .modal .campos { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; }
+    .modal .ancho { grid-column: 1 / -1; }
+    .modal .acciones-modal { display: flex; gap: 0.5rem; justify-content: flex-end; padding: 1rem 1.4rem; border-top: 1px solid var(--linea); }
+    .campo input.precio-input { font-family: var(--f-titulo); font-weight: 700; font-size: 1.4rem; }
+
+    .aviso-precio {
+      margin-top: 0.9rem;
+      padding: 0.7rem 0.9rem;
+      border-radius: var(--radio);
+      font-size: 0.88rem;
+      line-height: 1.45;
+      color: #f5d08a;
+      background: rgba(245, 181, 68, 0.1);
+      border: 1px solid rgba(245, 181, 68, 0.3);
+    }
+
+    .ejemplo-recargo { margin-top: 0.9rem; font-size: 0.88rem; color: var(--texto-2); }
+    .ejemplo-recargo strong { color: var(--texto); }
+
+    @media (max-width: 820px) {
+      .planes-grilla { grid-template-columns: 1fr; }
+      .modal .campos { grid-template-columns: 1fr 1fr; }
+    }
+
+    /* ============================================================
+       CELULAR
+       ============================================================ */
+    @media (max-width: 820px) {
+      .app { grid-template-columns: 1fr; }
+
+      .lateral {
+        position: fixed;
+        z-index: 40;
+        left: 0;
+        top: 0;
+        width: min(84vw, 300px);
+        transform: translateX(-100%);
+        transition: transform 220ms ease;
+        padding-top: calc(1.5rem + env(safe-area-inset-top));
+      }
+
+      body.menu-abierto .lateral { transform: translateX(0); }
+
+      .velo {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 30;
+        background: rgba(0,0,0,0.6);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 220ms ease;
+      }
+
+      body.menu-abierto .velo { opacity: 1; pointer-events: auto; }
+
+      .barra-movil {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        padding: calc(0.75rem + env(safe-area-inset-top)) 1.25rem 0.75rem;
+        background: rgba(20,18,19,0.94);
+        backdrop-filter: blur(8px);
+        border-bottom: 1px solid var(--linea);
+      }
+
+      .barra-movil .marca { padding: 0; gap: 0.6rem; }
+      .barra-movil .marca img { width: 34px; height: 34px; }
+      .barra-movil .marca-nombre { font-size: 1.25rem; }
+
+      .principal { padding-bottom: calc(5rem + env(safe-area-inset-bottom)); }
+
+      .encabezado { flex-direction: column; align-items: flex-start; padding: 1.75rem 0 1.5rem; }
+      .encabezado-logo { width: 200px; right: -60px; }
+
+
+      .nav-inferior {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        position: fixed;
+        z-index: 20;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        padding-bottom: env(safe-area-inset-bottom);
+        background: rgba(27,24,25,0.97);
+        backdrop-filter: blur(8px);
+        border-top: 1px solid var(--linea);
+      }
+
+      .nav-inferior a,
+      .nav-inferior button {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.2rem;
+        min-height: 60px;
+        font-size: 0.72rem;
+        color: var(--texto-2);
+      }
+
+      .nav-inferior [aria-current="page"] { color: var(--texto); }
+      .nav-inferior [aria-current="page"] .icono { color: var(--verde-texto); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="verificando">
+
+  <div class="app">
+
+    <!-- ============ BARRA LATERAL ============ -->
+    <aside class="lateral" id="lateral" aria-label="Navegación principal">
+      <a class="marca" href="index.html">
+        <img src="logo.webp" alt="">
+        <div>
+          <div class="marca-nombre">FUSSION FITNESS</div>
+          <div class="marca-lugar">Oro Verde</div>
+        </div>
+      </a>
+
+      <nav class="nav" id="navLateral"></nav>
+
+      <div class="lateral-pie">
+        <div class="admin-nombre" id="adminNombre"></div>
+        <div class="admin-rol">Administrador</div>
+        <button class="btn-salir" id="btnSalir" type="button">
+          <svg class="icono" viewBox="0 0 24 24"><use href="#i-salir"/></svg>
+          Cerrar sesión
+        </button>
+      </div>
+    </aside>
+
+    <div class="velo" id="velo"></div>
+
+    <div class="principal-wrap">
+
+      <header class="barra-movil">
+        <a class="marca" href="index.html">
+          <img src="logo.webp" alt="">
+          <div class="marca-nombre">FUSSION FITNESS</div>
+        </a>
+      </header>
+
+      <main class="principal">
+        <div class="contenido">
+          <!-- Encabezado -->
+          <section class="encabezado">
+            <img class="encabezado-logo" src="logo.webp" alt="" aria-hidden="true">
+            <div class="encabezado-texto">
+              <p class="antetitulo">Pagos y caja</p>
+              <h1 class="titulo-pagina">Planes y precios</h1>
+              <p class="bajada">El precio, el día de corte y el recargo de cada plan. Lo que cambies acá se usa en Recepción, en Registrar pago y en la app.</p>
+              <span class="trazo" aria-hidden="true"></span>
+            </div>
+            <button class="btn btn-primario" type="button" id="btnNuevo" style="position:relative">
+              <svg class="icono" viewBox="0 0 24 24"><use href="#i-mas"/></svg>
+              Nuevo plan
+            </button>
+          </section>
+
+          <div class="mensaje" id="mensajeGlobal" style="margin:0 0 1rem"></div>
+
+          <h2 class="seccion-titulo">Planes activos <span id="cantActivos"></span></h2>
+          <section class="planes-grilla" id="activos"><p class="vacio-tabla">Cargando…</p></section>
+
+          <div id="bloqueInactivos" class="oculto">
+            <h2 class="seccion-titulo">Desactivados <span>· no se pueden asignar a socios nuevos</span></h2>
+            <section class="planes-grilla" id="inactivos"></section>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Ventana para crear o editar un plan -->
+  <div class="velo-modal oculto" id="veloModal">
+    <form class="modal" id="formPlan" novalidate autocomplete="off" role="dialog" aria-modal="true" aria-labelledby="modalTitulo">
+      <div class="tarjeta-cab"><h2 class="tarjeta-titulo" id="modalTitulo">Nuevo plan</h2></div>
+      <div class="tarjeta-cuerpo">
+        <div class="campos">
+          <div class="campo ancho">
+            <label for="modalNombre">Nombre del plan</label>
+            <input type="text" id="modalNombre" placeholder="Plan libre, 3 días por semana…">
+          </div>
+          <div class="campo ancho">
+            <label for="modalPrecio">Precio mensual</label>
+            <input type="text" id="modalPrecio" class="precio-input" inputmode="decimal" placeholder="$ 0">
+          </div>
+          <div class="campo">
+            <label for="modalDia">Día de corte</label>
+            <input type="number" id="modalDia" min="1" max="28" value="10">
+            <span class="ayuda">Después de ese día, la cuota que se debe lleva recargo</span>
+          </div>
+          <div class="campo">
+            <label for="modalRecargo">Recargo (%)</label>
+            <input type="number" id="modalRecargo" min="0" max="100" value="15">
+          </div>
+        </div>
+        <p class="ejemplo-recargo" id="ejemplo"></p>
+        <div class="aviso-precio oculto" id="avisoPrecio"></div>
+        <div class="mensaje" id="mensajeModal"></div>
+      </div>
+      <div class="acciones-modal">
+        <button class="btn btn-fantasma" type="button" id="btnCancelar">Cancelar</button>
+        <button class="btn btn-primario" type="submit" id="btnGuardarPlan">Guardar</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ============ NAVEGACIÓN INFERIOR (solo celular) ============ -->
+  <nav class="nav-inferior" aria-label="Accesos rápidos">
+    <a href="index.html">
+      <svg class="icono" viewBox="0 0 24 24"><use href="#i-inicio"/></svg>Inicio
+    </a>
+    <a href="panel-general.html">
+      <svg class="icono" viewBox="0 0 24 24"><use href="#i-usuarios"/></svg>Socios
+    </a>
+    <a href="registro-pagos.html" aria-current="page">
+      <svg class="icono" viewBox="0 0 24 24"><use href="#i-pago"/></svg>Pagos
+    </a>
+    <a href="rutinas.html">
+      <svg class="icono" viewBox="0 0 24 24"><use href="#i-rutinas"/></svg>Rutinas
+    </a>
+    <button type="button" id="btnMenu" aria-controls="lateral" aria-expanded="false">
+      <svg class="icono" viewBox="0 0 24 24"><use href="#i-menu"/></svg>Menú
+    </button>
+  </nav>
+  <!-- ============ ICONOS ============ -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <g id="i-inicio"><path d="M3.5 10.5 12 3.5l8.5 7V20a.5.5 0 0 1-.5.5h-5v-6h-6v6H4a.5.5 0 0 1-.5-.5z"/></g>
+      <g id="i-usuarios"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.7-3.5 3.3-5.5 6.5-5.5s5.8 2 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M17.5 14.6c2.1.4 3.5 2 4 4.4"/></g>
+      <g id="i-usuario-mas"><circle cx="10" cy="8" r="3.5"/><path d="M3.5 20c.7-3.5 3.3-5.5 6.5-5.5 1.4 0 2.7.4 3.8 1.1"/><path d="M19 13.5v6M16 16.5h6"/></g>
+      <g id="i-usuario-editar"><circle cx="10" cy="8" r="3.5"/><path d="M3.5 20c.7-3.5 3.3-5.5 6.5-5.5 1 0 1.9.2 2.7.5"/><path d="m15 20.5.6-2.6 4.6-4.6 2 2-4.6 4.6z"/></g>
+      <g id="i-pago"><rect x="2.5" y="5.5" width="19" height="13" rx="2"/><path d="M2.5 9.5h19M6.5 14.5h4"/></g>
+      <g id="i-caja"><path d="M3.5 20.5h17M6 20.5v-8M11 20.5V5M16 20.5v-11"/></g>
+      <g id="i-planes"><path d="M3.5 12.5V4.5a1 1 0 0 1 1-1h8l8 8a1 1 0 0 1 0 1.4l-7.6 7.6a1 1 0 0 1-1.4 0z"/><circle cx="8" cy="8" r="1.3"/></g>
+      <g id="i-rutinas"><path d="M6.5 6v12M17.5 6v12M3.5 9v6M20.5 9v6M6.5 12h11"/></g>
+      <g id="i-plantillas"><path d="m12 3.5-9 4.5 9 4.5 9-4.5z"/><path d="m3 12 9 4.5 9-4.5"/><path d="m3 16 9 4.5 9-4.5"/></g>
+      <g id="i-recepcion"><rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M8.5 20h7M12 16v4"/></g>
+      <g id="i-salir"><path d="M14.5 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4"/><path d="m10 8-4 4 4 4M6 12h10"/></g>
+      <g id="i-menu"><path d="M4 7h16M4 12h16M4 17h16"/></g>
+      <g id="i-chevron"><path d="m9.5 6 6 6-6 6"/></g>
+      <g id="i-turnos"><rect x="3.5" y="5" width="17" height="15" rx="1.5"/><path d="M3.5 9.5h17M8 3v4M16 3v4M12 12.5v3l2 1.2"/></g>
+      <g id="i-trofeo"><path d="M8 4h8v6a4 4 0 0 1-8 0zM8 6H4.5a3.5 3.5 0 0 0 3.8 4.2M16 6h3.5a3.5 3.5 0 0 1-3.8 4.2M12 14v3.5M8.5 20.5h7M10 17.5h4"/></g>
+      <g id="i-buscar"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></g>
+      <g id="i-mas"><path d="M12 5v14M5 12h14"/></g>
+      <g id="i-copiar"><rect x="8.5" y="8.5" width="11" height="11" rx="1.5"/><path d="M15.5 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5"/></g>
+      <g id="i-ojo"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></g>
+      <g id="i-enviar"><path d="M20.5 3.5 10 14M20.5 3.5l-6.5 17-4-6.5-6.5-4z"/></g>
+      <g id="i-enlace"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></g>
+      <g id="i-arriba"><path d="m6 15 6-6 6 6"/></g>
+      <g id="i-abajo"><path d="m6 9 6 6 6-6"/></g>
+      <g id="i-x"><path d="M6 6l12 12M18 6 6 18"/></g>
+      <g id="i-duplicar"><rect x="8.5" y="8.5" width="11" height="11" rx="1.5"/><path d="M15.5 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5M14 11.5v5M11.5 14h5"/></g>
+      <g id="i-papelera"><path d="M4.5 7h15M9.5 7V5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v2M6.5 7l1 12.5a1 1 0 0 0 1 .9h7a1 1 0 0 0 1-.9L17.5 7"/></g>
+      <g id="i-check"><path d="m5 12.5 4.5 4.5L19 7.5"/></g>
+      <g id="i-info"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8h.01"/></g>
+      <g id="i-editar"><path d="m4.5 19.5 1-4L15 6l3 3-9.5 9.5z"/><path d="m13 8 3 3"/></g>
+    </defs>
+  </svg>
+  <script>
+    const SUPABASE_URL = 'https://goiwkkrumuuxngknxhgb.supabase.co'
+    const SUPABASE_KEY = 'sb_publishable_09Ni6AtnSWBrCAbhsGdFmQ_BYKp4A6-'
+    const { createClient } = supabase
+    const db = createClient(SUPABASE_URL, SUPABASE_KEY)
+
+    /* ============================================================
+       NAVEGACIÓN (misma lista de módulos que index.html)
+       ============================================================ */
+    const MODULOS = [
+      { titulo: 'Socios', items: [
+        { nombre: 'Listado de socios', href: 'panel-general.html', icono: 'i-usuarios' },
+        { nombre: 'Alta de socio', href: 'alta-socio.html', icono: 'i-usuario-mas' },
+        { nombre: 'Editar socio', href: 'editar-socio.html', icono: 'i-usuario-editar' }
+      ]},
+      { titulo: 'Pagos y caja', items: [
+        { nombre: 'Registrar pago', href: 'registro-pagos.html', icono: 'i-pago' },
+        { nombre: 'Caja', href: 'caja.html', icono: 'i-caja' },
+        { nombre: 'Planes y precios', href: 'planes.html', icono: 'i-planes' }
+      ]},
+      { titulo: 'Entrenamiento', items: [
+        { nombre: 'Rutinas', href: 'rutinas.html', icono: 'i-rutinas' },
+        { nombre: 'Plantillas de rutina', href: 'plantillas.html', icono: 'i-plantillas' },
+        { nombre: 'Gym Levels', href: 'gym-levels.html', icono: 'i-trofeo' },
+        { nombre: 'Turnos', href: 'turnos.html', icono: 'i-turnos' }
+      ]}
+    ]
+
+    const PAGINA_ACTUAL = 'planes.html'
+    const icono = (id, clase = 'icono') => `<svg class="${clase}" viewBox="0 0 24 24"><use href="#${id}"/></svg>`
+    const actual = href => href === PAGINA_ACTUAL ? ' aria-current="page"' : ''
+
+    document.getElementById('navLateral').innerHTML = `
+      <div class="nav-grupo">
+        <a class="nav-link" href="index.html">${icono('i-inicio')}Inicio</a>
+        <a class="nav-link" href="recepcion.html">${icono('i-recepcion')}Recepción</a>
+      </div>` + MODULOS.map(g => `
+      <div class="nav-grupo">
+        <div class="nav-grupo-titulo">${g.titulo}</div>
+        ${g.items.map(i => `<a class="nav-link" href="${i.href}"${actual(i.href)}>${icono(i.icono)}${i.nombre}</a>`).join('')}
+      </div>`).join('')
+
+    const btnMenu = document.getElementById('btnMenu')
+    function alternarMenu(abrir) {
+      document.body.classList.toggle('menu-abierto', abrir)
+      btnMenu.setAttribute('aria-expanded', String(abrir))
+    }
+    btnMenu.addEventListener('click', () => alternarMenu(!document.body.classList.contains('menu-abierto')))
+    document.getElementById('velo').addEventListener('click', () => alternarMenu(false))
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') alternarMenu(false) })
+
+    document.getElementById('btnSalir').addEventListener('click', cerrarSesion)
+
+
+    /* ============================================================
+       UTILIDADES
+       ============================================================ */
+    const escapar = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+    // Redondea a centavos antes de decidir si muestra decimales (48000 × 1,15 da 55199,999…)
+    const pesos = n => { const v = Math.round(Number(n || 0) * 100) / 100; return v.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: v % 1 ? 2 : 0, maximumFractionDigits: 2 }) }
+    const nombreBonito = t => String(t || '').trim().toLowerCase().replace(/(^|[\s'-])\S/g, c => c.toUpperCase())
+    const fechaCorta = iso => iso ? new Date(String(iso).slice(0, 10) + 'T00:00:00').toLocaleDateString('es-AR') : ''
+    const fechaLarga = iso => iso ? new Date(String(iso).slice(0, 10) + 'T00:00:00').toLocaleDateString('es-AR', { day: 'numeric', month: 'long' }) : ''
+
+    // Fecha de hoy en la hora de la PC (no en UTC: después de las 21 sería mañana)
+    function hoyLocal() {
+      const d = new Date()
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    }
+
+    function iniciales(nombre) {
+      const p = (nombre || '').trim().split(/\s+/)
+      return ((p[0]?.[0] || '') + (p.length > 1 ? p[p.length - 1][0] : '')).toUpperCase()
+    }
+
+    function formatearTelefonoWhatsapp(telefono) {
+      let digits = String(telefono || '').replace(/\D/g, '')
+      if (!digits) return null
+      if (digits.startsWith('54')) digits = digits.slice(2)
+      if (digits.startsWith('9')) digits = digits.slice(1)
+      if (digits.startsWith('0')) digits = digits.slice(1)
+      digits = digits.replace(/^(\d{2,4})15/, '$1')
+      return digits.length >= 8 ? `549${digits}` : null
+    }
+
+    function mostrarMensaje(id, texto, tipo) {
+      const el = document.getElementById(id)
+      el.className = `mensaje ${tipo} visible`
+      el.textContent = texto
+    }
+
+    function ocultarMensaje(id) {
+      document.getElementById(id).className = 'mensaje'
+    }
+
+    /* ============================================================
+       ACCESO
+       ============================================================ */
+    async function verificarAcceso() {
+      const { data } = await db.auth.getSession()
+      if (!data.session) {
+        window.location.href = 'login.html'
+        return
+      }
+      const { data: admin } = await db
+        .from('administradores')
+        .select('nombre')
+        .eq('id', data.session.user.id)
+        .eq('activo', true)
+        .limit(1)
+
+      if (!admin || admin.length === 0) {
+        await db.auth.signOut()
+        window.location.href = 'login.html'
+        return
+      }
+
+      document.getElementById('adminNombre').textContent = admin[0].nombre || 'Administrador'
+      document.body.classList.remove('verificando')
+      iniciarPagina()
+    }
+
+    async function cerrarSesion() {
+      await db.auth.signOut()
+      window.location.href = 'login.html'
+    }
+
+    /* ============================================================
+       PLANES Y PRECIOS
+       Misma lógica que la versión anterior: crear (activo), editar
+       nombre/precio/día de corte/recargo, desactivar y reactivar.
+       Nuevo: cuántos socios activos tiene cada plan (de v_socios_estado).
+       Corrección: al editar decía "Plan creado".
+       ============================================================ */
+    let planes = []
+    let sociosPorPlan = {}
+    let editando = null
+
+    // Acepta "41000", "41.000", "41000,50" o "$ 41.000"
+    function leerMonto(texto) {
+      let t = String(texto || '').replace(/[$\s]/g, '')
+      if (!t) return NaN
+      if (t.includes(',')) t = t.replace(/\./g, '').replace(',', '.')
+      else if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '')
+      return parseFloat(t)
+    }
+
+    async function iniciarPagina() { await cargar() }
+
+    async function cargar() {
+      const [rPlanes, rSocios] = await Promise.all([
+        db.from('planes').select('*').order('precio', { ascending: true }),
+        db.from('v_socios_estado').select('plan_id, activo').then(r => r, () => ({ data: [] }))
+      ])
+      if (rPlanes.error || !rPlanes.data) {
+        document.getElementById('activos').innerHTML = '<p class="vacio-tabla">No se pudieron cargar los planes.</p>'
+        return
+      }
+      planes = rPlanes.data
+      sociosPorPlan = {}
+      ;(rSocios.data || []).forEach(s => { if (s.activo && s.plan_id != null) sociosPorPlan[s.plan_id] = (sociosPorPlan[s.plan_id] || 0) + 1 })
+      renderizar()
+    }
+
+    function tarjetaPlan(p) {
+      const n = sociosPorPlan[p.id] || 0
+      const recargo = Number(p.porcentaje_recargo ?? 15)
+      return `
+        <article class="plan${p.activo ? '' : ' inactivo'}">
+          <div class="plan-socios" title="${n} socios activos con este plan"><strong>${n}</strong><span>${n === 1 ? 'socio' : 'socios'}</span></div>
+          <h3 class="plan-nombre">${escapar(p.nombre)}</h3>
+          <div class="plan-precio">${pesos(p.precio)}<small>/ mes</small></div>
+          <div class="plan-datos">
+            <div class="plan-dato"><span>Día de corte</span><span>${p.dia_vencimiento || 10}</span></div>
+            <div class="plan-dato"><span>Recargo</span><span>${recargo}%</span></div>
+            <div class="plan-dato"><span>Con recargo</span><span>${pesos(Number(p.precio) * (1 + recargo / 100))}</span></div>
+          </div>
+          <div class="plan-acciones">
+            ${p.activo
+              ? `<button class="btn" type="button" data-editar="${escapar(p.id)}"><svg class="icono" viewBox="0 0 24 24"><use href="#i-editar"/></svg>Editar</button>
+                 <button class="btn btn-fantasma" type="button" data-activar="false" data-id="${escapar(p.id)}">Desactivar</button>`
+              : `<button class="btn" type="button" data-activar="true" data-id="${escapar(p.id)}">Reactivar</button>`}
+          </div>
+        </article>`
+    }
+
+    function renderizar() {
+      const activos = planes.filter(p => p.activo)
+      const inactivos = planes.filter(p => !p.activo)
+      document.getElementById('cantActivos').textContent = `· ${activos.length}`
+      document.getElementById('activos').innerHTML = activos.length
+        ? activos.map(tarjetaPlan).join('')
+        : '<p class="vacio-tabla">No hay planes activos. Creá uno con "Nuevo plan".</p>'
+      document.getElementById('bloqueInactivos').classList.toggle('oculto', !inactivos.length)
+      document.getElementById('inactivos').innerHTML = inactivos.map(tarjetaPlan).join('')
+    }
+
+    /* ---------- Acciones de cada tarjeta ---------- */
+    document.querySelector('.contenido').addEventListener('click', async e => {
+      const ed = e.target.closest('[data-editar]')
+      if (ed) return abrirModal(planes.find(p => String(p.id) === ed.dataset.editar))
+
+      const b = e.target.closest('[data-activar]')
+      if (!b) return
+      const activar = b.dataset.activar === 'true'
+      // Desactivar pide un segundo toque
+      if (!activar && !b.classList.contains('confirmar')) {
+        const n = sociosPorPlan[b.dataset.id] || 0
+        b.classList.add('confirmar')
+        b.textContent = '¿Seguro?'
+        b.title = n ? `Los ${n} socios que lo tienen siguen igual; no se podrá asignar a nuevos.` : ''
+        setTimeout(() => { if (b.isConnected) { b.classList.remove('confirmar'); b.textContent = 'Desactivar' } }, 4000)
+        return
+      }
+      b.disabled = true
+      const { error } = await db.from('planes').update({ activo: activar }).eq('id', b.dataset.id)
+      if (error) {
+        mostrarMensaje('mensajeGlobal', 'No se pudo actualizar el plan: ' + error.message, 'error')
+        b.disabled = false
+        return
+      }
+      mostrarMensaje('mensajeGlobal', activar ? 'Plan reactivado.' : 'Plan desactivado. Los socios que ya lo tienen siguen igual.', 'exito')
+      await cargar()
+    })
+
+    /* ---------- Ventana crear / editar ---------- */
+    const velo = document.getElementById('veloModal')
+    const campo = id => document.getElementById(id)
+
+    function abrirModal(plan) {
+      editando = plan || null
+      campo('modalTitulo').textContent = plan ? 'Editar plan' : 'Nuevo plan'
+      campo('modalNombre').value = plan ? plan.nombre : ''
+      campo('modalPrecio').value = plan ? Number(plan.precio).toLocaleString('es-AR') : ''
+      campo('modalDia').value = plan ? (plan.dia_vencimiento || 10) : 10
+      campo('modalRecargo').value = plan ? Number(plan.porcentaje_recargo ?? 15) : 15
+      ocultarMensaje('mensajeModal')
+      actualizarEjemplo()
+      velo.classList.remove('oculto')
+      ;(plan ? campo('modalPrecio') : campo('modalNombre')).focus()
+    }
+
+    function cerrarModal() {
+      velo.classList.add('oculto')
+      editando = null
+    }
+
+    function actualizarEjemplo() {
+      const precio = leerMonto(campo('modalPrecio').value)
+      const rec = parseFloat(campo('modalRecargo').value) || 0
+      const dia = parseInt(campo('modalDia').value) || 10
+      campo('ejemplo').innerHTML = precio > 0
+        ? `Pagando hasta el día ${dia}: <strong>${pesos(precio)}</strong>. Desde el día ${dia + 1}, si debe: <strong>${pesos(precio * (1 + rec / 100))}</strong>.`
+        : ''
+      const aviso = campo('avisoPrecio')
+      const n = editando ? (sociosPorPlan[editando.id] || 0) : 0
+      const cambia = editando && precio > 0 && Math.abs(precio - Number(editando.precio)) > 0.001
+      aviso.classList.toggle('oculto', !(cambia && n))
+      if (cambia && n) aviso.innerHTML = `Este plan lo tienen <strong>${n} ${n === 1 ? 'socio' : 'socios'}</strong>. El precio nuevo se usa desde ahora para lo que deban; los pagos ya registrados no cambian.`
+    }
+
+    ;['modalPrecio', 'modalDia', 'modalRecargo'].forEach(id => campo(id).addEventListener('input', actualizarEjemplo))
+    document.getElementById('btnNuevo').addEventListener('click', () => abrirModal(null))
+    campo('btnCancelar').addEventListener('click', cerrarModal)
+    velo.addEventListener('click', e => { if (e.target === velo) cerrarModal() })
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !velo.classList.contains('oculto')) cerrarModal() })
+
+    campo('formPlan').addEventListener('submit', async e => {
+      e.preventDefault()
+      const nombre = campo('modalNombre').value.trim()
+      const precio = leerMonto(campo('modalPrecio').value)
+      const diaVencimiento = parseInt(campo('modalDia').value)
+      const recargo = parseFloat(campo('modalRecargo').value)
+
+      if (!nombre || !precio || precio <= 0) return mostrarMensaje('mensajeModal', 'Completá el nombre y un precio válido.', 'error')
+      if (!(diaVencimiento >= 1 && diaVencimiento <= 28)) return mostrarMensaje('mensajeModal', 'El día de corte va del 1 al 28.', 'error')
+      if (!(recargo >= 0 && recargo <= 100)) return mostrarMensaje('mensajeModal', 'El recargo va de 0 a 100%.', 'error')
+
+      const btn = campo('btnGuardarPlan')
+      btn.disabled = true
+      btn.textContent = 'Guardando…'
+      const eraEdicion = !!editando
+      const { error } = eraEdicion
+        ? await db.from('planes').update({ nombre, precio, dia_vencimiento: diaVencimiento, porcentaje_recargo: recargo }).eq('id', editando.id)
+        : await db.from('planes').insert({ nombre, precio, dia_vencimiento: diaVencimiento, porcentaje_recargo: recargo, activo: true })
+      btn.disabled = false
+      btn.textContent = 'Guardar'
+
+      if (error) return mostrarMensaje('mensajeModal', 'No se pudo guardar: ' + error.message, 'error')
+      cerrarModal()
+      mostrarMensaje('mensajeGlobal', eraEdicion ? 'Plan actualizado.' : 'Plan creado.', 'exito')
+      await cargar()
+    })
+
+    verificarAcceso()
+  </script>
+</body>
+</html>

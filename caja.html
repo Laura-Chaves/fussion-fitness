@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#141213">
+  <title>Caja | Fussion Fitness</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    /* ============================================================
+       TOKENS DE DISEÑO — se van a mover a css/tokens.css cuando
+       rediseñemos el resto de las páginas.
+       ============================================================ */
+    :root {
+      --fondo: #141213;
+      --superficie: #1b1819;
+      --elevada: #241f21;
+      --linea: #2f292b;
+      --linea-suave: #231e20;
+      --texto: #f3f0ef;
+      --texto-2: #a39a9c;
+      --texto-3: #736b6d;
+      --verde: #11803e;
+      --verde-hover: #169a4b;
+      --verde-texto: #3ddc84;
+      --peligro: #cc0000;
+      --peligro-hover: #e00b0b;
+      --peligro-texto: #ff5a52;
+      --al-dia: #38bdf8;
+      --al-dia-texto: #7dd3fc;
+
+      --f-titulo: 'Barlow Condensed', 'Arial Narrow', 'Roboto Condensed', sans-serif;
+      --f-texto: 'Barlow', 'Segoe UI', system-ui, sans-serif;
+
+      --ancho-lateral: 248px;
+      --radio: 6px;
+      --transicion: 160ms ease;
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { -webkit-text-size-adjust: 100%; }
+
+    body {
+      font-family: var(--f-texto);
+      font-size: 16px;
+      line-height: 1.5;
+      background: var(--fondo);
+      color: var(--texto);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+    svg { flex-shrink: 0; }
+
+    :focus-visible {
+      outline: 2px solid var(--verde-texto);
+      outline-offset: 2px;
+      border-radius: 2px;
+    }
+
+    /* Mientras se verifica la sesión no mostramos nada */
+    body.verificando .app { visibility: hidden; }
+
+    .icono {
+      width: 20px;
+      height: 20px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.75;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* ============================================================
+       ESTRUCTURA
+       ============================================================ */
+    .app {
+      display: grid;
+      grid-template-columns: var(--ancho-lateral) 1fr;
+      min-height: 100vh;
+    }
+
+    /* ---------- Barra lateral ---------- */
+    .lateral {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: var(--superficie);
+      border-right: 1px solid var(--linea);
+      padding: 1.5rem 0 1.25rem;
+      overflow-y: auto;
+    }
+
+    .marca {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0 1.25rem 1.5rem;
+    }
+
+    .marca img {
+      width: 44px;
+      height: 44px;
+      object-fit: contain;
+    }
+
+    .marca-nombre {
+      font-family: var(--f-titulo);
+      font-weight: 700;
+      font-size: 1.45rem;
+      letter-spacing: 0.06em;
+      line-height: 1;
+      color: var(--verde-texto);
+    }
+
+    .marca-lugar {
+      font-size: 0.8rem;
+      color: var(--texto-2);
+      margin-top: 0.2rem;
+    }
+
+    .nav { flex: 1; }
+
+    .nav-grupo { padding: 0.9rem 0 0.4rem; }
+
+    .nav-grupo-titulo {
+      font-family: var(--f-titulo);
+      font-weight: 600;
+      font-size: 0.95rem;
+      letter-spacing: 0.02em;
+      color: var(--texto-3);
+      padding: 0 1.25rem 0.35rem;
+    }
+
+    .nav-link {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.55rem 1.25rem;
+      font-size: 0.95rem;
+      color: var(--texto-2);
+      transition: color var(--transicion), background var(--transicion);
+    }
+
+    .nav-link:hover { color: var(--texto); background: var(--elevada); }
+
+    .nav-link[aria-current="page"] {
+      color: var(--texto);
+      background: var(--elevada);
+    }
+
+    .nav-link[aria-current="page"]::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 6px;
+      bottom: 6px;
+      width: 3px;
+      background: var(--verde);
+    }
+
+    .lateral-pie {
+      border-top: 1px solid var(--linea);
+      padding: 1rem 1.25rem 0;
+      margin-top: 1rem;
+    }
+
+    .admin-nombre {
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .admin-rol {
+      font-size: 0.8rem;
+      color: var(--texto-3);
+      margin-bottom: 0.75rem;
+    }
+
+    .btn-salir {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.9rem;
+      color: var(--texto-2);
+      padding: 0.35rem 0;
+      transition: color var(--transicion);
+    }
+
+    .btn-salir:hover { color: var(--peligro-texto); }
+
+    /* ---------- Barra superior e inferior (solo celular) ---------- */
+    .barra-movil,
+    .nav-inferior,
+    .velo { display: none; }
+
+    /* ============================================================
+       PÁGINA INTERNA
+       ============================================================ */
+    .principal {
+      min-width: 0;
+      padding: 0 clamp(1.25rem, 3.5vw, 3rem) 7rem;
+    }
+
+    .contenido { max-width: 1240px; }
+
+    /* Evita que el contenido ancho empuje la página hacia los costados */
+    .principal-wrap,
+    .espacio > * { min-width: 0; }
+
+    .oculto { display: none !important; }
+
+    /* ---------- Encabezado de página (león gris) ---------- */
+    .encabezado {
+      position: relative;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 1.5rem;
+      padding: clamp(2rem, 5vh, 3.25rem) 0 2rem;
+      overflow: hidden;
+    }
+
+    .encabezado-logo {
+      position: absolute;
+      right: 180px;
+      top: 50%;
+      width: 300px;
+      transform: translateY(-50%);
+      opacity: 0.07;
+      filter: grayscale(1) brightness(1.6);
+      clip-path: inset(0 0 7% 0);
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .encabezado-texto { position: relative; }
+
+    .antetitulo {
+      font-size: 0.95rem;
+      color: var(--texto-2);
+      margin-bottom: 0.25rem;
+    }
+
+    .titulo-pagina {
+      font-family: var(--f-titulo);
+      font-weight: 700;
+      font-size: clamp(2.6rem, 5vw, 3.6rem);
+      line-height: 0.95;
+    }
+
+    .bajada {
+      color: var(--texto-2);
+      margin-top: 0.6rem;
+      max-width: 46ch;
+    }
+
+    .trazo {
+      display: block;
+      width: 72px;
+      height: 6px;
+      margin-top: 1.1rem;
+      background: var(--verde);
+      transform: skewX(-24deg);
+    }
+
+    /* ---------- Botones ---------- */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      height: 44px;
+      padding: 0 1.1rem;
+      border-radius: var(--radio);
+      border: 1px solid var(--linea);
+      background: var(--superficie);
+      font-weight: 600;
+      font-size: 0.95rem;
+      white-space: nowrap;
+      transition: background var(--transicion), border-color var(--transicion), color var(--transicion);
+    }
+
+    .btn:hover { background: var(--elevada); border-color: #4a3f42; }
+    .btn .icono { width: 18px; height: 18px; }
+
+    .btn-primario {
+      background: var(--verde);
+      border-color: var(--verde-texto);
+      color: #fff;
+    }
+
+    .btn-primario:hover { background: var(--verde-hover); border-color: var(--verde-hover); }
+
+    .btn-primario:disabled {
+      background: var(--elevada);
+      border-color: var(--linea);
+      color: var(--texto-3);
+      cursor: wait;
+    }
+
+    .btn-fantasma {
+      background: none;
+      border-color: transparent;
+      color: var(--texto-2);
+    }
+
+    .btn-fantasma:hover { background: var(--elevada); color: var(--texto); border-color: transparent; }
+
+    .btn-icono {
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      border-radius: var(--radio);
+      color: var(--texto-3);
+      transition: color var(--transicion), background var(--transicion);
+    }
+
+    .btn-icono:hover { color: var(--texto); background: var(--elevada); }
+    .btn-icono.peligro:hover { color: var(--peligro-texto); background: rgba(204, 0, 0, 0.12); }
+    .btn-icono .icono { width: 17px; height: 17px; }
+    .btn-icono:disabled { opacity: 0.3; pointer-events: none; }
+
+
+    /* ---------- Mensajes ---------- */
+    .mensaje { display: none; margin-top: 0.9rem; padding: 0.75rem 1rem; border-radius: var(--radio); font-size: 0.95rem; }
+    .mensaje.visible { display: block; }
+    .mensaje.error  { color: #ffb3ad; background: rgba(204, 0, 0, 0.14); border: 1px solid rgba(255, 90, 82, 0.35); }
+    .mensaje.exito  { color: #9ff0bd; background: rgba(62, 207, 116, 0.1); border: 1px solid rgba(62, 207, 116, 0.35); }
+    .mensaje.aviso  { color: #f5d08a; background: rgba(245, 181, 68, 0.1); border: 1px solid rgba(245, 181, 68, 0.35); }
+
+    /* ---------- Estado de cuota (mismos colores que Registrar pago) ---------- */
+    .estado-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 0.15rem 0.5rem;
+      border-radius: 3px;
+      white-space: nowrap;
+    }
+
+    .estado-tag::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .estado-tag.al_dia        { color: #7dd3fc; background: rgba(56, 189, 248, 0.12); }
+    .estado-tag.por_vencer    { color: #f5c46b; background: rgba(245, 181, 68, 0.13); }
+    .estado-tag.vencida       { color: #ff8a83; background: rgba(204, 0, 0, 0.16); }
+    .estado-tag.pendiente     { color: #f5c46b; background: rgba(245, 181, 68, 0.13); }
+    .estado-tag.sin_membresia { color: var(--texto-2); background: rgba(255, 255, 255, 0.06); }
+    .estado-tag.baja          { color: var(--texto-3); background: rgba(255, 255, 255, 0.04); }
+
+    /* ---------- Formularios ---------- */
+    .campo { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
+    .campo label { font-size: 0.85rem; font-weight: 600; color: var(--texto-2); }
+    .campo label .obligatorio { color: var(--verde-texto); }
+    .campo .ayuda { font-size: 0.8rem; color: var(--texto-3); }
+
+    .campo input, .campo select, .campo textarea {
+      width: 100%;
+      height: 46px;
+      padding: 0 0.9rem;
+      font: inherit;
+      color: var(--texto);
+      background: var(--fondo);
+      border: 1px solid var(--linea);
+      border-radius: var(--radio);
+      outline: none;
+      color-scheme: dark;
+      transition: border-color var(--transicion);
+    }
+
+    .campo textarea { height: auto; min-height: 84px; padding: 0.7rem 0.9rem; resize: vertical; }
+    .campo input:focus, .campo select:focus, .campo textarea:focus { border-color: var(--verde-texto); }
+    .campo input.invalido { border-color: var(--peligro-texto); }
+
+    .tarjeta {
+      border-radius: 12px;
+      border: 1px solid var(--linea);
+      background: var(--superficie);
+    }
+
+    .tarjeta-cab {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1.1rem 1.4rem;
+      border-bottom: 1px solid var(--linea);
+    }
+
+    .tarjeta-titulo { font-family: var(--f-titulo); font-weight: 600; font-size: 1.4rem; line-height: 1.1; }
+    .tarjeta-sub { font-size: 0.85rem; color: var(--texto-3); margin-top: 0.1rem; }
+    .tarjeta-cuerpo { padding: 1.25rem 1.4rem 1.4rem; }
+
+    .avatar-ini {
+      flex: none;
+      display: grid;
+      place-items: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      font-family: var(--f-titulo);
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--texto);
+      background: linear-gradient(145deg, #3a2f32, #241f21);
+      border: 1px solid var(--linea);
+    }
+
+    .vacio-tabla { padding: 2.5rem 1.25rem; text-align: center; color: var(--texto-3); }
+    .vacio-tabla strong { display: block; color: var(--texto); font-size: 1.05rem; margin-bottom: 0.25rem; }
+
+    /* ============================================================
+       CAJA
+       Colores de los gráficos validados para daltonismo sobre el
+       fondo oscuro: ingresos verde azulado, gastos rojo anaranjado.
+       ============================================================ */
+    :root { --ing: #2a9d8f; --ing-texto: #5cc9bb; --gas: #e0533f; --gas-texto: #ff8a73; }
+
+    .periodo {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .periodo-nombre {
+      min-width: 9.5rem;
+      text-align: center;
+      font-family: var(--f-titulo);
+      font-weight: 600;
+      font-size: 1.35rem;
+    }
+
+    .btn-cuadrado { width: 44px; padding: 0; }
+
+    /* Números del mes */
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.6rem;
+      margin-bottom: 1rem;
+    }
+
+    .kpi {
+      position: relative;
+      padding: 1.05rem 1.2rem 1rem;
+      border-radius: 12px;
+      border: 1px solid var(--linea);
+      background: var(--superficie);
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    .kpi::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      background: var(--k, transparent);
+    }
+
+    .kpi.ing { --k: var(--ing); }
+    .kpi.gas { --k: var(--gas); }
+    .kpi.res.positivo { --k: #3ecf74; }
+    .kpi.res.negativo { --k: #ff5a52; }
+
+    .kpi-nombre { display: flex; align-items: center; gap: 0.45rem; font-size: 0.85rem; color: var(--texto-2); }
+
+    .kpi-valor {
+      font-family: var(--f-titulo);
+      font-weight: 700;
+      font-size: clamp(1.8rem, 2.6vw, 2.4rem);
+      line-height: 1.1;
+      margin-top: 0.15rem;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .kpi.res.negativo .kpi-valor { color: #ff8a83; }
+    .kpi-extra { font-size: 0.82rem; color: var(--texto-3); margin-top: 0.1rem; }
+
+    .variacion { font-weight: 600; white-space: nowrap; }
+    .variacion.sube { color: #9ff0bd; }
+    .variacion.baja { color: #ffb3ad; }
+    .kpi.gas .variacion.sube { color: #ffb3ad; }
+    .kpi.gas .variacion.baja { color: #9ff0bd; }
+
+    /* Gráficos */
+    .graficos {
+      display: grid;
+      grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .graficos .columna { display: grid; gap: 1rem; align-content: start; }
+
+    .leyenda { display: flex; gap: 1rem; font-size: 0.85rem; color: var(--texto-2); }
+    .leyenda span { display: inline-flex; align-items: center; gap: 0.4rem; }
+    .leyenda i { width: 10px; height: 10px; border-radius: 2px; background: var(--c); }
+
+    .grafico-meses { position: relative; padding: 0.5rem 1.2rem 1rem; }
+    .grafico-meses svg { display: block; width: 100%; overflow: visible; }
+    .grafico-meses .barra { transition: opacity var(--transicion); }
+    .grafico-meses.hover .grupo:not(.activo) .barra { opacity: 0.35; }
+
+    .tip {
+      position: absolute;
+      z-index: 3;
+      pointer-events: none;
+      min-width: 170px;
+      padding: 0.6rem 0.75rem;
+      border-radius: 8px;
+      background: #2a2426;
+      border: 1px solid #3d3537;
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
+      font-size: 0.85rem;
+      transform: translateX(-50%);
+    }
+
+    .tip strong { display: block; margin-bottom: 0.3rem; text-transform: capitalize; }
+    .tip-fila { display: flex; justify-content: space-between; gap: 1rem; color: var(--texto-2); }
+    .tip-fila b { color: var(--texto); font-variant-numeric: tabular-nums; }
+    .tip-fila i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 0.35rem; background: var(--c); }
+    .tip-total { border-top: 1px solid #3d3537; margin-top: 0.35rem; padding-top: 0.35rem; }
+
+    /* Barras horizontales */
+    .barras-h { padding: 0.9rem 1.2rem 1.1rem; display: grid; gap: 0.75rem; }
+    .barra-h-cab { display: flex; justify-content: space-between; gap: 0.75rem; font-size: 0.9rem; }
+    .barra-h-cab span:first-child { font-weight: 600; }
+    .barra-h-cab span:last-child { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .barra-h-cab small { color: var(--texto-3); margin-left: 0.35rem; }
+    .barra-h-pista { height: 8px; margin-top: 0.35rem; border-radius: 4px; background: rgba(255, 255, 255, 0.05); }
+    .barra-h-fill { height: 100%; border-radius: 4px; background: var(--c); transform-origin: left; animation: crecerH 700ms cubic-bezier(.2,.8,.2,1) both; }
+
+    @keyframes crecerH { from { transform: scaleX(0); } }
+
+    .sin-datos { padding: 1.5rem 1.2rem; color: var(--texto-3); font-size: 0.92rem; }
+
+    /* Listas */
+    .listas {
+      display: grid;
+      grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+      gap: 1rem;
+      align-items: start;
+    }
+
+    .total-cab { font-family: var(--f-titulo); font-weight: 700; font-size: 1.5rem; white-space: nowrap; }
+
+    .buscar-mini {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      height: 38px;
+      margin: 0.8rem 1.2rem 0.2rem;
+      padding: 0 0.75rem;
+      border-radius: var(--radio);
+      border: 1px solid var(--linea);
+      background: var(--fondo);
+      color: var(--texto-3);
+    }
+
+    .buscar-mini:focus-within { border-color: var(--verde-texto); }
+    .buscar-mini .icono { width: 16px; height: 16px; }
+    .buscar-mini input { flex: 1; min-width: 0; height: 100%; border: none; outline: none; background: none; font: inherit; font-size: 0.92rem; color: var(--texto); }
+
+    .lista-mov { list-style: none; max-height: 560px; overflow-y: auto; }
+
+    .mov {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 0.2rem 1rem;
+      align-items: center;
+      padding: 0.7rem 1.2rem;
+      border-bottom: 1px solid var(--linea-suave);
+    }
+
+    .mov:last-child { border-bottom: none; }
+    .mov-titulo { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mov-detalle { font-size: 0.8rem; color: var(--texto-3); }
+    .mov-detalle .recargo { color: #f5c46b; font-weight: 600; }
+    .mov-monto { font-family: var(--f-titulo); font-weight: 700; font-size: 1.2rem; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .mov-acciones { display: flex; align-items: center; gap: 0.35rem; justify-content: flex-end; }
+
+    .btn-borrar {
+      height: 28px;
+      padding: 0 0.55rem;
+      border-radius: var(--radio);
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--texto-3);
+      border: 1px solid transparent;
+    }
+
+    .btn-borrar:hover { color: #ffb3ad; border-color: rgba(255, 90, 82, 0.4); }
+    .btn-borrar.confirmar { color: #fff; background: var(--peligro); border-color: var(--peligro); }
+
+    /* Formulario de gasto */
+    .form-gasto { padding: 1rem 1.2rem 1.1rem; border-bottom: 1px solid var(--linea); background: rgba(0, 0, 0, 0.12); }
+    .form-gasto .campos { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    .form-gasto .ancho { grid-column: 1 / -1; }
+    .form-gasto .acciones-form { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.9rem; }
+    .campo input.monto-input { font-family: var(--f-titulo); font-weight: 700; font-size: 1.25rem; }
+
+    @media (max-width: 1180px) {
+      .kpis { grid-template-columns: 1fr 1fr; }
+      .graficos, .listas { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 820px) {
+      .periodo-nombre { min-width: 0; flex: 1; }
+      .periodo { width: 100%; }
+      .periodo .btn-exportar span { display: none; }
+      .kpis { gap: 0.5rem; }
+      .kpi { padding: 0.85rem 0.9rem; }
+      .kpi-valor { font-size: 1.55rem; }
+      .grafico-meses { padding: 0.5rem 0.6rem 0.8rem; }
+      .form-gasto .campos { grid-template-columns: 1fr; }
+    }
+
+    /* ============================================================
+       CELULAR
+       ============================================================ */
+    @media (max-width: 820px) {
+      .app { grid-template-columns: 1fr; }
+
+      .lateral {
+        position: fixed;
+        z-index: 40;
+        left: 0;
+        top: 0;
+        width: min(84vw, 300px);
+        transform: translateX(-100%);
+        transition: transform 220ms ease;
+        padding-top: calc(1.5rem + env(safe-area-inset-top));
+      }
+
+      body.menu-abierto .lateral { transform: translateX(0); }
+
+      .velo {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 30;
+        background: rgba(0,0,0,0.6);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 220ms ease;
+      }
+
+      body.menu-abierto .velo { opacity: 1; pointer-events: auto; }
+
+      .barra-movil {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        padding: calc(0.75rem + env(safe-area-inset-top)) 1.25rem 0.75rem;
+        background: rgba(20,18,19,0.94);
+        backdrop-filter: blur(8px);
+        border-bottom: 1px solid var(--linea);
+      }
+
+      .barra-movil .marca { padding: 0; gap: 0.6rem; }
+      .barra-movil .marca img { width: 34px; height: 34px; }
+      .barra-movil .marca-nombre { font-size: 1.25rem; }
+
+      .principal { padding-bottom: calc(5rem + env(safe-area-inset-bottom)); }
+
+      .encabezado { flex-direction: column; align-items: flex-start; padding: 1.75rem 0 1.5rem; }
+      .encabezado-logo { width: 200px; right: -60px; }
+
+
+      .nav-inferior {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        position: fixed;
+        z-index: 20;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        padding-bottom: env(safe-area-inset-bottom);
+        background: rgba(27,24,25,0.97);
+        backdrop-filter: blur(8px);
+        border-top: 1px solid var(--linea);
+      }
+
+      .nav-inferior a,
+      .nav-inferior button {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.2rem;
+        min-height: 60px;
+        font-size: 0.72rem;
+        color: var(--texto-2);
+      }
+
+      .nav-inferior [aria-current="page"] { color: var(--texto); }
+      .nav-inferior [aria-current="page"] .icono { color: var(--verde-texto); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="verificando">
+
+  <div class="app">
+
+    <!-- ============ BARRA LATERAL ============ -->
+    <aside class="lateral" id="lateral" aria-label="Navegación principal">
+      <a class="marca" href="index.html">
+        <img src="logo.webp" alt="">
+        <div>
+          <div class="marca-nombre">FUSSION FITNESS</div>
+          <div class="marca-lugar">Oro Verde</div>
+        </div>
+      </a>
+
+      <nav class="nav" id="navLateral"></nav>
+
+      <div class="lateral-pie">
+        <div class="admin-nombre" id="adminNombre"></div>
+        <div class="admin-rol">Administrador</div>
+        <button class="btn-salir" id="btnSalir" type="button">
+          <svg class="icono" viewBox="0 0 24 24"><use href="#i-salir"/></svg>
+          Cerrar sesión
+        </button>
+      </div>
+    </aside>
+
+    <div class="velo" id="velo"></div>
+
+    <div class="principal-wrap">
+
+      <header class="barra-movil">
+        <a class="marca" href="index.html">
+          <img src="logo.webp" alt="">
+          <div class="marca-nombre">FUSSION FITNESS</div>
+        </a>
+      </header>
+
+      <main class="principal">
+        <div class="contenido">
+          <!-- Encabezado -->
+          <section class="encabezado">
+            <img class="encabezado-logo" src="logo.webp" alt="" aria-hidden="true">
+            <div class="encabezado-texto">
+              <p class="antetitulo">Pagos y caja</p>
+              <h1 class="titulo-pagina">Caja</h1>
+              <p class="bajada">Ingresos por cuotas, gastos del gimnasio y el resultado de cada mes.</p>
+              <span class="trazo" aria-hidden="true"></span>
+            </div>
+            <div class="periodo">
+              <button class="btn btn-cuadrado" type="button" id="mesAnterior" aria-label="Mes anterior"><svg class="icono" viewBox="0 0 24 24"><use href="#i-izq"/></svg></button>
+              <div class="periodo-nombre" id="periodoNombre" aria-live="polite"></div>
+              <button class="btn btn-cuadrado" type="button" id="mesSiguiente" aria-label="Mes siguiente"><svg class="icono" viewBox="0 0 24 24"><use href="#i-der"/></svg></button>
+              <button class="btn btn-exportar" type="button" id="btnExportar" title="Exportar a Excel">
+                <svg class="icono" viewBox="0 0 24 24"><use href="#i-descargar"/></svg><span>Excel</span>
+              </button>
+            </div>
+          </section>
+
+          <section class="kpis" id="kpis" aria-label="Resumen del mes"></section>
+
+          <section class="graficos">
+            <div class="tarjeta">
+              <div class="tarjeta-cab">
+                <div>
+                  <h2 class="tarjeta-titulo">Últimos 6 meses</h2>
+                  <p class="tarjeta-sub">Ingresos y gastos de cada mes</p>
+                </div>
+                <div class="leyenda" aria-hidden="true">
+                  <span><i style="--c:var(--ing)"></i>Ingresos</span>
+                  <span><i style="--c:var(--gas)"></i>Gastos</span>
+                </div>
+              </div>
+              <div class="grafico-meses" id="graficoMeses"></div>
+            </div>
+            <div class="columna">
+              <div class="tarjeta">
+                <div class="tarjeta-cab"><div><h2 class="tarjeta-titulo">Cómo se cobró</h2><p class="tarjeta-sub">Ingresos del mes por método de pago</p></div></div>
+                <div id="porMetodo"></div>
+              </div>
+              <div class="tarjeta">
+                <div class="tarjeta-cab"><div><h2 class="tarjeta-titulo">En qué se gastó</h2><p class="tarjeta-sub">Gastos del mes por categoría</p></div></div>
+                <div id="porCategoria"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="listas">
+            <div class="tarjeta">
+              <div class="tarjeta-cab">
+                <div><h2 class="tarjeta-titulo">Ingresos del mes</h2><p class="tarjeta-sub" id="subIngresos"></p></div>
+                <div class="total-cab" id="totalIngresosCab" style="color:var(--ing-texto)"></div>
+              </div>
+              <label class="buscar-mini">
+                <svg class="icono" viewBox="0 0 24 24"><use href="#i-buscar"/></svg>
+                <input type="search" id="buscarIngreso" placeholder="Buscar socio" aria-label="Buscar en ingresos">
+              </label>
+              <ul class="lista-mov" id="listaIngresos"><li class="sin-datos">Cargando…</li></ul>
+            </div>
+
+            <div class="tarjeta">
+              <div class="tarjeta-cab">
+                <div><h2 class="tarjeta-titulo">Gastos del mes</h2><p class="tarjeta-sub" id="subGastos"></p></div>
+                <button class="btn btn-primario" type="button" id="btnNuevoGasto" style="height:38px">
+                  <svg class="icono" viewBox="0 0 24 24"><use href="#i-mas"/></svg>Gasto
+                </button>
+              </div>
+              <form class="form-gasto oculto" id="formGasto" novalidate autocomplete="off">
+                <div class="campos">
+                  <div class="campo ancho">
+                    <label for="gastoDescripcion">Descripción</label>
+                    <input type="text" id="gastoDescripcion" placeholder="Luz, internet, limpieza…">
+                  </div>
+                  <div class="campo">
+                    <label for="gastoMonto">Monto</label>
+                    <input type="text" id="gastoMonto" class="monto-input" inputmode="decimal" placeholder="$ 0">
+                  </div>
+                  <div class="campo">
+                    <label for="gastoCategoria">Categoría</label>
+                    <select id="gastoCategoria">
+                      <option>Servicios</option><option>Mantenimiento</option><option>Personal</option>
+                      <option>Equipamiento</option><option>Impuestos</option><option>Otros</option>
+                    </select>
+                  </div>
+                  <div class="campo ancho">
+                    <label for="gastoMetodo">Método</label>
+                    <select id="gastoMetodo">
+                      <option>Efectivo</option><option>Transferencia</option><option>Débito</option><option>Tarjeta</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="mensaje" id="mensajeGasto"></div>
+                <div class="acciones-form">
+                  <button class="btn btn-fantasma" type="button" id="cancelarGasto">Cancelar</button>
+                  <button class="btn btn-primario" type="submit" id="btnGuardarGasto">Guardar gasto</button>
+                </div>
+              </form>
+              <ul class="lista-mov" id="listaGastos"><li class="sin-datos">Cargando…</li></ul>
+            </div>
+          </section>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- ============ NAVEGACIÓN INFERIOR (solo celular) ============ -->
+  <nav class="nav-inferior" aria-label="Accesos rápidos">
+    <a href="index.html">
+      <svg class="icono" viewBox="0 0 24 24"><use href="#i-inicio"/></svg>Inicio
+    </a>
+    <a href="panel-general.html">
+      <svg class="icono" viewBox="0 0 24 24"><use href="#i-usuarios"/></svg>Socios
+    </a>
+    <a href="registro-pagos.html" aria-current="page">
+      <svg class="icono" viewBox="0 0 24 24"><use href="#i-pago"/></svg>Pagos
+    </a>
+    <a href="rutinas.html">
+      <svg class="icono" viewBox="0 0 24 24"><use href="#i-rutinas"/></svg>Rutinas
+    </a>
+    <button type="button" id="btnMenu" aria-controls="lateral" aria-expanded="false">
+      <svg class="icono" viewBox="0 0 24 24"><use href="#i-menu"/></svg>Menú
+    </button>
+  </nav>
+  <!-- ============ ICONOS ============ -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <g id="i-inicio"><path d="M3.5 10.5 12 3.5l8.5 7V20a.5.5 0 0 1-.5.5h-5v-6h-6v6H4a.5.5 0 0 1-.5-.5z"/></g>
+      <g id="i-usuarios"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.7-3.5 3.3-5.5 6.5-5.5s5.8 2 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M17.5 14.6c2.1.4 3.5 2 4 4.4"/></g>
+      <g id="i-usuario-mas"><circle cx="10" cy="8" r="3.5"/><path d="M3.5 20c.7-3.5 3.3-5.5 6.5-5.5 1.4 0 2.7.4 3.8 1.1"/><path d="M19 13.5v6M16 16.5h6"/></g>
+      <g id="i-usuario-editar"><circle cx="10" cy="8" r="3.5"/><path d="M3.5 20c.7-3.5 3.3-5.5 6.5-5.5 1 0 1.9.2 2.7.5"/><path d="m15 20.5.6-2.6 4.6-4.6 2 2-4.6 4.6z"/></g>
+      <g id="i-pago"><rect x="2.5" y="5.5" width="19" height="13" rx="2"/><path d="M2.5 9.5h19M6.5 14.5h4"/></g>
+      <g id="i-caja"><path d="M3.5 20.5h17M6 20.5v-8M11 20.5V5M16 20.5v-11"/></g>
+      <g id="i-planes"><path d="M3.5 12.5V4.5a1 1 0 0 1 1-1h8l8 8a1 1 0 0 1 0 1.4l-7.6 7.6a1 1 0 0 1-1.4 0z"/><circle cx="8" cy="8" r="1.3"/></g>
+      <g id="i-rutinas"><path d="M6.5 6v12M17.5 6v12M3.5 9v6M20.5 9v6M6.5 12h11"/></g>
+      <g id="i-plantillas"><path d="m12 3.5-9 4.5 9 4.5 9-4.5z"/><path d="m3 12 9 4.5 9-4.5"/><path d="m3 16 9 4.5 9-4.5"/></g>
+      <g id="i-recepcion"><rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M8.5 20h7M12 16v4"/></g>
+      <g id="i-salir"><path d="M14.5 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4"/><path d="m10 8-4 4 4 4M6 12h10"/></g>
+      <g id="i-menu"><path d="M4 7h16M4 12h16M4 17h16"/></g>
+      <g id="i-chevron"><path d="m9.5 6 6 6-6 6"/></g>
+      <g id="i-turnos"><rect x="3.5" y="5" width="17" height="15" rx="1.5"/><path d="M3.5 9.5h17M8 3v4M16 3v4M12 12.5v3l2 1.2"/></g>
+      <g id="i-trofeo"><path d="M8 4h8v6a4 4 0 0 1-8 0zM8 6H4.5a3.5 3.5 0 0 0 3.8 4.2M16 6h3.5a3.5 3.5 0 0 1-3.8 4.2M12 14v3.5M8.5 20.5h7M10 17.5h4"/></g>
+      <g id="i-buscar"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></g>
+      <g id="i-mas"><path d="M12 5v14M5 12h14"/></g>
+      <g id="i-copiar"><rect x="8.5" y="8.5" width="11" height="11" rx="1.5"/><path d="M15.5 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5"/></g>
+      <g id="i-ojo"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></g>
+      <g id="i-enviar"><path d="M20.5 3.5 10 14M20.5 3.5l-6.5 17-4-6.5-6.5-4z"/></g>
+      <g id="i-enlace"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></g>
+      <g id="i-arriba"><path d="m6 15 6-6 6 6"/></g>
+      <g id="i-abajo"><path d="m6 9 6 6 6-6"/></g>
+      <g id="i-x"><path d="M6 6l12 12M18 6 6 18"/></g>
+      <g id="i-duplicar"><rect x="8.5" y="8.5" width="11" height="11" rx="1.5"/><path d="M15.5 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5M14 11.5v5M11.5 14h5"/></g>
+      <g id="i-papelera"><path d="M4.5 7h15M9.5 7V5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v2M6.5 7l1 12.5a1 1 0 0 0 1 .9h7a1 1 0 0 0 1-.9L17.5 7"/></g>
+      <g id="i-check"><path d="m5 12.5 4.5 4.5L19 7.5"/></g>
+      <g id="i-info"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8h.01"/></g>
+      <g id="i-izq"><path d="m14.5 6-6 6 6 6"/></g>
+      <g id="i-der"><path d="m9.5 6 6 6-6 6"/></g>
+      <g id="i-descargar"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14"/></g>
+    </defs>
+  </svg>
+  <script>
+    const SUPABASE_URL = 'https://goiwkkrumuuxngknxhgb.supabase.co'
+    const SUPABASE_KEY = 'sb_publishable_09Ni6AtnSWBrCAbhsGdFmQ_BYKp4A6-'
+    const { createClient } = supabase
+    const db = createClient(SUPABASE_URL, SUPABASE_KEY)
+
+    /* ============================================================
+       NAVEGACIÓN (misma lista de módulos que index.html)
+       ============================================================ */
+    const MODULOS = [
+      { titulo: 'Socios', items: [
+        { nombre: 'Listado de socios', href: 'panel-general.html', icono: 'i-usuarios' },
+        { nombre: 'Alta de socio', href: 'alta-socio.html', icono: 'i-usuario-mas' },
+        { nombre: 'Editar socio', href: 'editar-socio.html', icono: 'i-usuario-editar' }
+      ]},
+      { titulo: 'Pagos y caja', items: [
+        { nombre: 'Registrar pago', href: 'registro-pagos.html', icono: 'i-pago' },
+        { nombre: 'Caja', href: 'caja.html', icono: 'i-caja' },
+        { nombre: 'Planes y precios', href: 'planes.html', icono: 'i-planes' }
+      ]},
+      { titulo: 'Entrenamiento', items: [
+        { nombre: 'Rutinas', href: 'rutinas.html', icono: 'i-rutinas' },
+        { nombre: 'Plantillas de rutina', href: 'plantillas.html', icono: 'i-plantillas' },
+        { nombre: 'Gym Levels', href: 'gym-levels.html', icono: 'i-trofeo' },
+        { nombre: 'Turnos', href: 'turnos.html', icono: 'i-turnos' }
+      ]}
+    ]
+
+    const PAGINA_ACTUAL = 'caja.html'
+    const icono = (id, clase = 'icono') => `<svg class="${clase}" viewBox="0 0 24 24"><use href="#${id}"/></svg>`
+    const actual = href => href === PAGINA_ACTUAL ? ' aria-current="page"' : ''
+
+    document.getElementById('navLateral').innerHTML = `
+      <div class="nav-grupo">
+        <a class="nav-link" href="index.html">${icono('i-inicio')}Inicio</a>
+        <a class="nav-link" href="recepcion.html">${icono('i-recepcion')}Recepción</a>
+      </div>` + MODULOS.map(g => `
+      <div class="nav-grupo">
+        <div class="nav-grupo-titulo">${g.titulo}</div>
+        ${g.items.map(i => `<a class="nav-link" href="${i.href}"${actual(i.href)}>${icono(i.icono)}${i.nombre}</a>`).join('')}
+      </div>`).join('')
+
+    const btnMenu = document.getElementById('btnMenu')
+    function alternarMenu(abrir) {
+      document.body.classList.toggle('menu-abierto', abrir)
+      btnMenu.setAttribute('aria-expanded', String(abrir))
+    }
+    btnMenu.addEventListener('click', () => alternarMenu(!document.body.classList.contains('menu-abierto')))
+    document.getElementById('velo').addEventListener('click', () => alternarMenu(false))
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') alternarMenu(false) })
+
+    document.getElementById('btnSalir').addEventListener('click', cerrarSesion)
+
+
+    /* ============================================================
+       UTILIDADES
+       ============================================================ */
+    const escapar = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+    // Redondea a centavos antes de decidir si muestra decimales (48000 × 1,15 da 55199,999…)
+    const pesos = n => { const v = Math.round(Number(n || 0) * 100) / 100; return v.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: v % 1 ? 2 : 0, maximumFractionDigits: 2 }) }
+    const nombreBonito = t => String(t || '').trim().toLowerCase().replace(/(^|[\s'-])\S/g, c => c.toUpperCase())
+    const fechaCorta = iso => iso ? new Date(String(iso).slice(0, 10) + 'T00:00:00').toLocaleDateString('es-AR') : ''
+    const fechaLarga = iso => iso ? new Date(String(iso).slice(0, 10) + 'T00:00:00').toLocaleDateString('es-AR', { day: 'numeric', month: 'long' }) : ''
+
+    // Fecha de hoy en la hora de la PC (no en UTC: después de las 21 sería mañana)
+    function hoyLocal() {
+      const d = new Date()
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    }
+
+    function iniciales(nombre) {
+      const p = (nombre || '').trim().split(/\s+/)
+      return ((p[0]?.[0] || '') + (p.length > 1 ? p[p.length - 1][0] : '')).toUpperCase()
+    }
+
+    function formatearTelefonoWhatsapp(telefono) {
+      let digits = String(telefono || '').replace(/\D/g, '')
+      if (!digits) return null
+      if (digits.startsWith('54')) digits = digits.slice(2)
+      if (digits.startsWith('9')) digits = digits.slice(1)
+      if (digits.startsWith('0')) digits = digits.slice(1)
+      digits = digits.replace(/^(\d{2,4})15/, '$1')
+      return digits.length >= 8 ? `549${digits}` : null
+    }
+
+    function mostrarMensaje(id, texto, tipo) {
+      const el = document.getElementById(id)
+      el.className = `mensaje ${tipo} visible`
+      el.textContent = texto
+    }
+
+    function ocultarMensaje(id) {
+      document.getElementById(id).className = 'mensaje'
+    }
+
+    /* ============================================================
+       ACCESO
+       ============================================================ */
+    async function verificarAcceso() {
+      const { data } = await db.auth.getSession()
+      if (!data.session) {
+        window.location.href = 'login.html'
+        return
+      }
+      const { data: admin } = await db
+        .from('administradores')
+        .select('nombre')
+        .eq('id', data.session.user.id)
+        .eq('activo', true)
+        .limit(1)
+
+      if (!admin || admin.length === 0) {
+        await db.auth.signOut()
+        window.location.href = 'login.html'
+        return
+      }
+
+      document.getElementById('adminNombre').textContent = admin[0].nombre || 'Administrador'
+      document.body.classList.remove('verificando')
+      iniciarPagina()
+    }
+
+    async function cerrarSesion() {
+      await db.auth.signOut()
+      window.location.href = 'login.html'
+    }
+
+    /* ============================================================
+       CAJA
+       Misma lógica que la versión anterior:
+         - Ingresos: pagos cuyo período (anio, mes) es el elegido.
+         - Gastos: gastos_gym del mismo anio y mes. Se agregan y se borran acá.
+         - Exportar a Excel: mismas tres hojas (Ingresos, Gastos, Resumen).
+       Nuevo: comparación con el mes anterior y gráficos con datos reales.
+       ============================================================ */
+    const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
+    const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+    const capital = t => t.charAt(0).toUpperCase() + t.slice(1)
+    const hoy = new Date()
+    const periodo = { anio: hoy.getFullYear(), mes: hoy.getMonth() + 1 }
+    let ingresos = [], gastos = [], historial = []
+
+    // fecha_pago viene sin zona horaria y está en UTC
+    function fechaPago(valor) {
+      const s = String(valor || '')
+      if (!s) return null
+      return new Date(/[zZ]$|[+-]\d\d:?\d\d$/.test(s) || s.length <= 10 ? s : s + 'Z')
+    }
+
+    // Acepta "25000", "25.000", "25000,50" o "$ 25.000"
+    function leerMonto(texto) {
+      let t = String(texto || '').replace(/[$\s]/g, '')
+      if (!t) return NaN
+      if (t.includes(',')) t = t.replace(/\./g, '').replace(',', '.')
+      else if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '')
+      return parseFloat(t)
+    }
+
+    // Montos grandes abreviados para el eje: 1,2 M · 850 k
+    function pesosCorto(n) {
+      const a = Math.abs(n)
+      if (a >= 1e6) return `$ ${(n / 1e6).toLocaleString('es-AR', { maximumFractionDigits: 1 })} M`
+      if (a >= 1e3) return `$ ${Math.round(n / 1e3).toLocaleString('es-AR')} k`
+      return `$ ${Math.round(n)}`
+    }
+
+    const suma = (lista, campo = 'monto') => lista.reduce((t, x) => t + Number(x[campo] || 0), 0)
+    const clavePeriodo = (a, m) => a * 12 + (m - 1)
+
+    async function iniciarPagina() {
+      document.getElementById('mesAnterior').addEventListener('click', () => moverMes(-1))
+      document.getElementById('mesSiguiente').addEventListener('click', () => moverMes(1))
+      await cargar()
+    }
+
+    function moverMes(paso) {
+      const k = clavePeriodo(periodo.anio, periodo.mes) + paso
+      periodo.anio = Math.floor(k / 12)
+      periodo.mes = (k % 12) + 1
+      cargar()
+    }
+
+    async function cargar() {
+      const { anio, mes } = periodo
+      document.getElementById('periodoNombre').textContent = `${capital(MESES[mes - 1])} ${anio}`
+      const esFuturo = clavePeriodo(anio, mes) >= clavePeriodo(hoy.getFullYear(), hoy.getMonth() + 1)
+      document.getElementById('mesSiguiente').disabled = esFuturo
+      document.getElementById('mesSiguiente').style.opacity = esFuturo ? 0.35 : 1
+
+      // Seis meses que terminan en el elegido
+      const meses = Array.from({ length: 6 }, (_, i) => {
+        const k = clavePeriodo(anio, mes) - 5 + i
+        return { anio: Math.floor(k / 12), mes: (k % 12) + 1 }
+      })
+      const anios = [...new Set(meses.map(m => m.anio))]
+
+      const [rPagos, rGastos, rHistP, rHistG] = await Promise.all([
+        db.from('pagos').select('*, socios(nombre), membresias(planes(nombre))').eq('anio', anio).eq('mes', mes).order('fecha_pago', { ascending: true }),
+        db.from('gastos_gym').select('*').eq('anio', anio).eq('mes', mes).order('created_at', { ascending: true }),
+        db.from('pagos').select('anio, mes, monto').in('anio', anios),
+        db.from('gastos_gym').select('anio, mes, monto').in('anio', anios)
+      ])
+
+      if (rPagos.error || rGastos.error) {
+        console.error(rPagos.error || rGastos.error)
+        document.getElementById('kpis').innerHTML = '<div class="tarjeta sin-datos" style="grid-column:1/-1">No se pudieron cargar los datos de la caja. Revisá la conexión.</div>'
+        return
+      }
+
+      ingresos = rPagos.data || []
+      gastos = rGastos.data || []
+      const hp = rHistP.data || [], hg = rHistG.data || []
+      historial = meses.map(m => ({
+        ...m,
+        ingresos: suma(hp.filter(p => p.anio === m.anio && p.mes === m.mes)),
+        gastos: suma(hg.filter(g => g.anio === m.anio && g.mes === m.mes))
+      }))
+      // El mes elegido, con los datos completos
+      historial[5].ingresos = suma(ingresos)
+      historial[5].gastos = suma(gastos)
+
+      renderizarKpis()
+      renderizarMeses()
+      renderizarPorMetodo()
+      renderizarPorCategoria()
+      renderizarIngresos()
+      renderizarGastos()
+    }
+
+    /* ---------- Números del mes ---------- */
+    const esMesEnCurso = () => periodo.anio === hoy.getFullYear() && periodo.mes === hoy.getMonth() + 1
+
+    // Contra el mes anterior solo si el mes ya cerró (un mes a medias contra uno completo engaña)
+    function variacion(actual, anterior) {
+      if (!anterior || esMesEnCurso()) return ''
+      const v = ((actual - anterior) / anterior) * 100
+      if (Math.abs(v) < 0.5) return `<span class="variacion">igual que ${MESES[historial[4].mes - 1]}</span>`
+      return `<span class="variacion ${v > 0 ? 'sube' : 'baja'}">${v > 0 ? '+' : '−'}${Math.abs(v).toFixed(0)}%</span> vs ${MESES[historial[4].mes - 1]}`
+    }
+
+    function renderizarKpis() {
+      const ti = suma(ingresos), tg = suma(gastos), res = ti - tg
+      const ant = historial[4]
+      const conRecargo = ingresos.filter(p => p.con_recargo).length
+      const promedio = ingresos.length ? ti / ingresos.length : 0
+
+      const diasMes = new Date(periodo.anio, periodo.mes, 0).getDate()
+      const enCurso = esMesEnCurso() ? `Mes en curso · día ${hoy.getDate()} de ${diasMes}` : ''
+
+      document.getElementById('kpis').innerHTML = `
+        <div class="kpi ing">
+          <div class="kpi-nombre">Ingresos</div>
+          <div class="kpi-valor">${pesos(ti)}</div>
+          <div class="kpi-extra">${variacion(ti, ant.ingresos) || enCurso || `${ingresos.length} ${ingresos.length === 1 ? 'pago' : 'pagos'}`}</div>
+        </div>
+        <div class="kpi gas">
+          <div class="kpi-nombre">Gastos</div>
+          <div class="kpi-valor">${pesos(tg)}</div>
+          <div class="kpi-extra">${variacion(tg, ant.gastos) || `${gastos.length} ${gastos.length === 1 ? 'gasto cargado' : 'gastos cargados'}`}</div>
+        </div>
+        <div class="kpi res ${res >= 0 ? 'positivo' : 'negativo'}">
+          <div class="kpi-nombre">Resultado</div>
+          <div class="kpi-valor">${res < 0 ? '−' : ''}${pesos(Math.abs(res))}</div>
+          <div class="kpi-extra">${ti ? `Margen ${Math.round((res / ti) * 100)}% de lo cobrado` : 'Sin ingresos este mes'}</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-nombre">Cuotas cobradas</div>
+          <div class="kpi-valor">${ingresos.length}</div>
+          <div class="kpi-extra">${ingresos.length ? `Promedio ${pesos(promedio)}${conRecargo ? ` · ${conRecargo} con recargo` : ''}` : 'Ninguna todavía'}</div>
+        </div>`
+    }
+
+    /* ---------- Gráfico: últimos 6 meses (barras agrupadas) ---------- */
+    function renderizarMeses() {
+      const cont = document.getElementById('graficoMeses')
+      if (!historial.some(m => m.ingresos || m.gastos)) {
+        cont.innerHTML = '<p class="sin-datos">Todavía no hay movimientos en estos meses.</p>'
+        return
+      }
+
+      const W = Math.max(300, cont.clientWidth - 24 || 640)
+      const H = W < 500 ? 240 : 320
+      const m = { t: 18, r: 6, b: 46, l: 56 }
+      const ancho = W - m.l - m.r, alto = H - m.t - m.b
+      const max = Math.max(...historial.flatMap(x => [x.ingresos, x.gastos]))
+      const paso = (() => { const b = max / 4, g = Math.pow(10, Math.floor(Math.log10(b || 1))), n = b / g; return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * g })()
+      const tope = Math.ceil(max / paso) * paso || 1
+      const Y = v => m.t + alto - (v / tope) * alto
+      const col = ancho / historial.length
+      const anchoBarra = Math.min(30, (col - 18) / 2)
+
+      let svg = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="Ingresos y gastos de los últimos 6 meses">`
+      for (let v = 0; v <= tope + 0.001; v += paso) {
+        svg += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="${v === 0 ? '#3a3234' : '#262123'}" stroke-width="1"/>`
+        svg += `<text x="${m.l - 8}" y="${Y(v) + 4}" text-anchor="end" font-size="11" fill="#736b6d">${pesosCorto(v)}</text>`
+      }
+
+      historial.forEach((x, i) => {
+        const cx = m.l + col * i + col / 2
+        const actual = i === historial.length - 1
+        const barra = (v, dx, color) => {
+          const h = Math.max(v ? 2 : 0, Y(0) - Y(v))
+          // Esquinas redondeadas solo arriba (4px), apoyada en la base
+          const x0 = cx + dx, y0 = Y(0) - h, r = Math.min(4, h, anchoBarra / 2)
+          return h ? `<path class="barra" d="M${x0},${Y(0)} V${y0 + r} Q${x0},${y0} ${x0 + r},${y0} H${x0 + anchoBarra - r} Q${x0 + anchoBarra},${y0} ${x0 + anchoBarra},${y0 + r} V${Y(0)} Z" fill="${color}"/>` : ''
+        }
+        const res = x.ingresos - x.gastos
+        svg += `<g class="grupo" data-i="${i}">
+          ${barra(x.ingresos, -anchoBarra - 1, '#2a9d8f')}
+          ${barra(x.gastos, 1, '#e0533f')}
+          <text x="${cx}" y="${H - 26}" text-anchor="middle" font-size="12" font-weight="${actual ? 700 : 500}" fill="${actual ? '#f3f0ef' : '#a39a9c'}">${capital(MESES_CORTOS[x.mes - 1])}${x.anio !== periodo.anio ? ' ' + String(x.anio).slice(2) : ''}</text>
+          ${W >= 500 ? `<text x="${cx}" y="${H - 8}" text-anchor="middle" font-size="11" fill="#736b6d">${x.ingresos || x.gastos ? (res < 0 ? '−' : '+') + pesosCorto(Math.abs(res)).replace('$ ', '$') : ''}</text>` : ''}
+          <rect x="${cx - col / 2}" y="${m.t}" width="${col}" height="${alto + m.b}" fill="transparent" class="zona-mes"/>
+        </g>`
+      })
+      svg += '</svg><div class="tip" id="tipMeses" hidden></div>'
+      cont.innerHTML = svg
+
+      const tip = document.getElementById('tipMeses')
+      cont.querySelectorAll('.grupo').forEach(g => {
+        const mostrar = () => {
+          const x = historial[Number(g.dataset.i)]
+          cont.classList.add('hover')
+          cont.querySelectorAll('.grupo').forEach(o => o.classList.toggle('activo', o === g))
+          const res = x.ingresos - x.gastos
+          tip.innerHTML = `<strong>${MESES[x.mes - 1]} ${x.anio}</strong>
+            <div class="tip-fila"><span><i style="--c:#2a9d8f"></i>Ingresos</span><b>${pesos(x.ingresos)}</b></div>
+            <div class="tip-fila"><span><i style="--c:#e0533f"></i>Gastos</span><b>${pesos(x.gastos)}</b></div>
+            <div class="tip-fila tip-total"><span>Resultado</span><b>${res < 0 ? '−' : ''}${pesos(Math.abs(res))}</b></div>`
+          const r = cont.getBoundingClientRect(), z = g.querySelector('.zona-mes').getBoundingClientRect()
+          tip.style.left = `${Math.min(Math.max(z.left - r.left + z.width / 2, 95), r.width - 95)}px`
+          tip.style.top = `${Math.max(8, z.top - r.top + 4)}px`
+          tip.hidden = false
+        }
+        g.addEventListener('pointerenter', mostrar)
+        g.addEventListener('pointerdown', mostrar)
+      })
+      cont.addEventListener('pointerleave', () => {
+        cont.classList.remove('hover'); tip.hidden = true
+        cont.querySelectorAll('.grupo').forEach(o => o.classList.remove('activo'))
+      })
+    }
+
+    /* ---------- Barras horizontales (método y categoría) ---------- */
+    function barrasPor(lista, campo, color, vacio, unidad) {
+      const total = suma(lista)
+      if (!lista.length || !total) return `<p class="sin-datos">${vacio}</p>`
+      const grupos = {}
+      lista.forEach(x => {
+        const k = capital(String(x[campo] || 'Sin dato').toLowerCase())
+        grupos[k] = grupos[k] || { total: 0, n: 0 }
+        grupos[k].total += Number(x.monto || 0)
+        grupos[k].n++
+      })
+      const filas = Object.entries(grupos).sort((a, b) => b[1].total - a[1].total)
+      const max = filas[0][1].total
+      return `<div class="barras-h">${filas.map(([nombre, g]) => `
+        <div title="${escapar(nombre)}: ${pesos(g.total)} (${g.n} ${g.n === 1 ? unidad[0] : unidad[1]})">
+          <div class="barra-h-cab"><span>${escapar(nombre)}</span><span>${pesos(g.total)}<small>${Math.round((g.total / total) * 100)}%</small></span></div>
+          <div class="barra-h-pista"><div class="barra-h-fill" style="width:${Math.max(2, (g.total / max) * 100)}%;--c:${color}"></div></div>
+        </div>`).join('')}</div>`
+    }
+
+    function renderizarPorMetodo() {
+      document.getElementById('porMetodo').innerHTML = barrasPor(ingresos, 'metodo', '#2a9d8f', 'No hay cobros en este mes.', ['pago', 'pagos'])
+    }
+
+    function renderizarPorCategoria() {
+      document.getElementById('porCategoria').innerHTML = barrasPor(gastos, 'categoria', '#e0533f', 'No hay gastos cargados en este mes.', ['gasto', 'gastos'])
+    }
+
+    /* ---------- Listas ---------- */
+    function renderizarIngresos() {
+      const q = document.getElementById('buscarIngreso').value.trim().toLowerCase()
+      const total = suma(ingresos)
+      document.getElementById('totalIngresosCab').textContent = pesos(total)
+      document.getElementById('subIngresos').textContent = `${ingresos.length} ${ingresos.length === 1 ? 'cuota cobrada' : 'cuotas cobradas'} de ${MESES[periodo.mes - 1]}`
+
+      const lista = [...ingresos].reverse().filter(p => !q || (p.socios?.nombre || '').toLowerCase().includes(q))
+      const ul = document.getElementById('listaIngresos')
+      if (!lista.length) {
+        ul.innerHTML = `<li class="sin-datos">${q ? 'Ningún pago coincide con la búsqueda.' : 'No hay pagos registrados para este mes.'}</li>`
+        return
+      }
+      ul.innerHTML = lista.map(p => {
+        const f = fechaPago(p.fecha_pago)
+        return `
+          <li class="mov">
+            <span class="mov-titulo">${escapar(nombreBonito(p.socios?.nombre || '—'))}</span>
+            <span class="mov-monto" style="color:var(--ing-texto)">${pesos(p.monto)}</span>
+            <span class="mov-detalle">${escapar(p.membresias?.planes?.nombre || '—')} · ${escapar(capital(String(p.metodo || '').toLowerCase()))}${f ? ` · ${f.toLocaleDateString('es-AR')}` : ''}${p.con_recargo ? ' · <span class="recargo">con recargo</span>' : ''}</span>
+          </li>`
+      }).join('')
+    }
+
+    function renderizarGastos() {
+      document.getElementById('subGastos').textContent = gastos.length
+        ? `${gastos.length} ${gastos.length === 1 ? 'gasto' : 'gastos'} · ${pesos(suma(gastos))}`
+        : `Sin gastos en ${MESES[periodo.mes - 1]}`
+      const ul = document.getElementById('listaGastos')
+      if (!gastos.length) {
+        ul.innerHTML = '<li class="sin-datos">No hay gastos registrados para este mes.</li>'
+        return
+      }
+      ul.innerHTML = [...gastos].reverse().map(g => `
+        <li class="mov">
+          <span class="mov-titulo">${escapar(g.descripcion)}</span>
+          <span class="mov-acciones">
+            <span class="mov-monto" style="color:var(--gas-texto)">${pesos(g.monto)}</span>
+          </span>
+          <span class="mov-detalle">${escapar(g.categoria)} · ${escapar(g.metodo)} · ${new Date(g.created_at).toLocaleDateString('es-AR')}</span>
+          <span class="mov-acciones"><button type="button" class="btn-borrar" data-id="${escapar(g.id)}">Eliminar</button></span>
+        </li>`).join('')
+    }
+
+    document.getElementById('buscarIngreso').addEventListener('input', renderizarIngresos)
+
+    // Borrar: primer toque pide confirmación, el segundo borra
+    document.getElementById('listaGastos').addEventListener('click', async e => {
+      const b = e.target.closest('.btn-borrar')
+      if (!b) return
+      if (!b.classList.contains('confirmar')) {
+        document.querySelectorAll('.btn-borrar.confirmar').forEach(x => { x.classList.remove('confirmar'); x.textContent = 'Eliminar' })
+        b.classList.add('confirmar')
+        b.textContent = '¿Seguro? Tocá de nuevo'
+        setTimeout(() => { if (b.isConnected) { b.classList.remove('confirmar'); b.textContent = 'Eliminar' } }, 4000)
+        return
+      }
+      b.disabled = true
+      const { error } = await db.from('gastos_gym').delete().eq('id', b.dataset.id)
+      if (error) { b.disabled = false; b.textContent = 'No se pudo borrar'; return }
+      await cargar()
+    })
+
+    /* ---------- Nuevo gasto ---------- */
+    const formGasto = document.getElementById('formGasto')
+
+    function abrirFormGasto(abrir) {
+      formGasto.classList.toggle('oculto', !abrir)
+      document.getElementById('btnNuevoGasto').classList.toggle('oculto', abrir)
+      ocultarMensaje('mensajeGasto')
+      if (abrir) document.getElementById('gastoDescripcion').focus()
+    }
+
+    document.getElementById('btnNuevoGasto').addEventListener('click', () => abrirFormGasto(true))
+    document.getElementById('cancelarGasto').addEventListener('click', () => abrirFormGasto(false))
+
+    formGasto.addEventListener('submit', async e => {
+      e.preventDefault()
+      const descripcion = document.getElementById('gastoDescripcion').value.trim()
+      const categoria = document.getElementById('gastoCategoria').value
+      const monto = leerMonto(document.getElementById('gastoMonto').value)
+      const metodo = document.getElementById('gastoMetodo').value
+
+      if (!descripcion || !monto || monto <= 0) {
+        mostrarMensaje('mensajeGasto', 'Completá la descripción y un monto válido.', 'error')
+        return
+      }
+
+      const btn = document.getElementById('btnGuardarGasto')
+      btn.disabled = true
+      btn.textContent = 'Guardando…'
+      const { error } = await db.from('gastos_gym').insert({ descripcion, categoria, monto, metodo, mes: periodo.mes, anio: periodo.anio })
+      btn.disabled = false
+      btn.textContent = 'Guardar gasto'
+
+      if (error) {
+        mostrarMensaje('mensajeGasto', 'No se pudo guardar: ' + error.message, 'error')
+        return
+      }
+      document.getElementById('gastoDescripcion').value = ''
+      document.getElementById('gastoMonto').value = ''
+      abrirFormGasto(false)
+      await cargar()
+    })
+
+    /* ---------- Exportar a Excel (mismas hojas que antes) ---------- */
+    document.getElementById('btnExportar').addEventListener('click', () => {
+      if (typeof XLSX === 'undefined') return alert('No se pudo cargar el exportador. Revisá la conexión.')
+      const nombreMes = capital(MESES[periodo.mes - 1])
+      const p = `${nombreMes} ${periodo.anio}`
+      const ti = suma(ingresos), tg = suma(gastos)
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
+        ['INGRESOS — ' + p],
+        ['Socio', 'Plan', 'Monto', 'Método', 'Con recargo', 'Fecha'],
+        ...ingresos.map(x => [x.socios?.nombre || '—', x.membresias?.planes?.nombre || '—', Number(x.monto), x.metodo, x.con_recargo ? 'Sí' : 'No', fechaPago(x.fecha_pago)?.toLocaleDateString('es-AR') || '']),
+        [], ['TOTAL', '', ti]
+      ]), 'Ingresos')
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
+        ['GASTOS — ' + p],
+        ['Descripción', 'Categoría', 'Monto', 'Método', 'Fecha'],
+        ...gastos.map(g => [g.descripcion, g.categoria, Number(g.monto), g.metodo, new Date(g.created_at).toLocaleDateString('es-AR')]),
+        [], ['TOTAL', '', tg]
+      ]), 'Gastos')
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
+        ['RESUMEN — ' + p], [], ['Total ingresos', ti], ['Total gastos', tg], ['Resultado', ti - tg]
+      ]), 'Resumen')
+      XLSX.writeFile(wb, `FussionFitness_Caja_${nombreMes}_${periodo.anio}.xlsx`)
+    })
+
+    let redibujo = null
+    window.addEventListener('resize', () => { clearTimeout(redibujo); redibujo = setTimeout(renderizarMeses, 150) })
+
+    verificarAcceso()
+  </script>
+</body>
+</html>
