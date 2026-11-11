@@ -1138,6 +1138,7 @@
     .aviso strong { display: block; }
     .aviso span { font-size: 0.88rem; color: var(--texto-2); }
     .aviso.record { background: #16261c; border-color: rgba(61, 220, 132, 0.55); }
+    .aviso.error { background: #2d1d1d; border-color: rgba(255, 90, 82, 0.55); }
     .aviso.record .icono { color: var(--verde-texto); }
 
     /* ============================================================
@@ -1993,6 +1994,7 @@
       .pestanas { width: 100%; }
       .pestanas button { flex: 1; padding: 0 0.3rem; white-space: nowrap; font-size: 0.82rem; }
       .mi-turno div { white-space: nowrap; }
+      .mis-turnos .mi-turno { flex: 1 1 100%; flex-wrap: wrap; }
     }
 
     /* ============================================================
@@ -2025,6 +2027,33 @@
 
     .mi-turno strong { font-family: var(--f-titulo); font-size: 1.2rem; line-height: 1; }
     .mi-turno span { font-size: 0.85rem; color: var(--texto-2); }
+    .mi-turno .mt-fecha { display: flex; align-items: baseline; gap: 0.45rem; flex-wrap: wrap; }
+    .mi-turno .mt-botones { display: flex; gap: 0.35rem; margin-left: auto; }
+    .mi-turno .mt-botones .tr-boton { height: 32px; padding: 0 0.7rem; margin: 0; font-size: 0.85rem; }
+    .mi-turno .mt-tarde { font-size: 0.78rem; color: var(--texto-3); margin-left: auto; white-space: normal; text-align: right; max-width: 11rem; }
+    .mi-turno.cambiando { border-color: #f5b544; background: rgba(245, 181, 68, 0.1); }
+    .etq-fijo {
+      display: inline-block; padding: 0.05rem 0.45rem; border-radius: 99px;
+      font-size: 0.68rem !important; font-weight: 700; letter-spacing: 0.04em;
+      color: var(--verde-texto) !important; background: rgba(0, 176, 72, 0.14);
+    }
+    .mi-horario {
+      display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;
+      margin-top: 1rem; padding: 0.8rem 1rem; border-radius: 10px;
+      border: 1px solid var(--linea); background: var(--superficie); font-size: 0.95rem; color: var(--texto-2);
+    }
+    .mi-horario strong { color: var(--texto); }
+    .mi-horario .icono { width: 20px; height: 20px; color: var(--verde-texto); flex: none; }
+    .tr-cambio {
+      display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;
+      margin: 1rem 0 0; padding: 0.8rem 1rem; border-radius: 10px;
+      border: 1px solid rgba(245, 181, 68, 0.45); background: rgba(245, 181, 68, 0.1);
+      color: #f5d08a; font-size: 0.95rem;
+    }
+    .tr-cambio strong { color: var(--texto); }
+    .tr-cambio .tr-boton { height: 34px; padding: 0 0.8rem; margin: 0; }
+    .tr-boton.mover { background: #f5b544; border-color: #f5b544; color: #1b1819; }
+    .tr-boton.mover:hover { background: #f7c46a; }
 
     .tr-dias {
       display: flex;
@@ -2578,7 +2607,14 @@
     }
 
     function renderizarFicha(rutina) {
-      const items = [
+      // Rutina semanal del nivel (migración 014)
+      const NIVEL_NOMBRE = { inicial: 'Inicial', medio: 'Medio', avanzado: 'Avanzado' }
+      const items = rutina.es_plan ? [
+        ['Nota del profe', rutina.objetivo, true],
+        ['Nivel', `<span class="tipo-tag">${escapar(NIVEL_NOMBRE[rutina.nivel] || rutina.nivel || '')}</span>`, false, true],
+        ['Semana del', fechaCorta(rutina.semana)],
+        ['Edad', calcularEdad(socio.fecha_nacimiento)]
+      ] : [
         ['Objetivo', rutina.objetivo, true],
         ['Tipo de plan', rutina.tipo_plan ? `<span class="tipo-tag">${escapar(rutina.tipo_plan)}</span>` : '', false, true],
         ['Inicio', fechaCorta(rutina.fecha_inicio)],
@@ -3668,6 +3704,7 @@
        ============================================================ */
     let agenda = null
     let diaElegido = null
+    let cambiando = null   // { fecha, hora } del turno que el alumno está cambiando
     let refrescoTurnos = null
     const DIAS_CORTOS = ['', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
     const DIAS_LARGOS = ['', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo']
@@ -3697,28 +3734,70 @@
       return `el ${DIAS_LARGOS[((d.getDay() + 6) % 7) + 1]} ${d.getDate()}`
     }
 
+    const horaTxt = h => `${dosDig(h)}:00`
+    const miTurno = (fecha, hora) => (agenda.mis_turnos || []).find(t => t.fecha === fecha && Number(t.hora) === Number(hora))
+    const textoAviso = () => {
+      const h = Number(agenda.horas_aviso || 0)
+      return h ? `hasta ${h === 1 ? '1 hora' : `${h} horas`} antes` : 'hasta que empieza'
+    }
+
+    function resumenHorario() {
+      const h = agenda.mi_horario || []
+      if (!h.length) return ''
+      const porHora = {}
+      h.forEach(x => { (porHora[x.hora] = porHora[x.hora] || []).push(DIAS_CORTOS[x.dia_semana].toLowerCase()) })
+      const partes = Object.entries(porHora).map(([hora, dias]) =>
+        `<strong>${dias.length > 1 ? dias.slice(0, -1).join(', ') + ' y ' + dias.slice(-1) : dias[0]}</strong> a las <strong>${horaTxt(hora)}</strong>`)
+      return `
+        <div class="mi-horario">
+          <svg class="icono" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="1.5"/><path d="M3.5 9.5h17M8 3v4M16 3v4M12 12.5v3l2 1.2"/></svg>
+          <span>Tu horario fijo: ${partes.join(' y ')}. Ya estás anotado; si un día no podés, tocá <strong>No voy</strong> o <strong>Cambiar</strong> (${textoAviso()}).</span>
+        </div>`
+    }
+
     function renderizarTurnos() {
       const cont = document.getElementById('turnosGl')
       if (!document.body.classList.contains('viendo-turnos') || !agenda) return
 
       const mis = agenda.mis_turnos || []
+      if (cambiando && !miTurno(cambiando.fecha, cambiando.hora)) cambiando = null
       const dia = agenda.dias.find(d => d.fecha === diaElegido) || agenda.dias[0]
       const futuras = dia.franjas.filter(f => !f.pasada)
       const pasadas = dia.franjas.length - futuras.length
-      const tengoEseDia = mis.some(t => t.fecha === dia.fecha)
+      // Al cambiar, el turno viejo se libera: ese día no cuenta como ocupado
+      const tengoEseDia = mis.some(t => t.fecha === dia.fecha && !(cambiando && t.fecha === cambiando.fecha && Number(t.hora) === Number(cambiando.hora)))
       const yo = (glPerfil && glPerfil.nombre) || nombrePorDefecto()
 
       cont.innerHTML = `
         <h2 class="prog-titulo">Turnos</h2>
-        <p class="prog-bajada">Anotate en el horario que vas a venir. Ves cuántos lugares quedan${agenda.con_nombres ? ' y quiénes van' : ''}.</p>
+        <p class="prog-bajada">${(agenda.mi_horario || []).length
+          ? `Tus turnos de la semana. Ves cuántos lugares quedan${agenda.con_nombres ? ' y quiénes van' : ''} en cada horario.`
+          : `Anotate en el horario que vas a venir. Ves cuántos lugares quedan${agenda.con_nombres ? ' y quiénes van' : ''}.`}</p>
+
+        ${resumenHorario()}
 
         ${mis.length ? `
           <div class="mis-turnos" aria-label="Tus próximos turnos">
-            ${mis.map(t => `
-              <div class="mi-turno">
-                <div><strong>${dosDig(t.hora)}:00</strong> <span>${nombreDia(t.fecha)}</span></div>
-                <button type="button" class="tr-boton cancelar" style="height:32px;padding:0 0.7rem" data-cancelar="${t.fecha}|${t.hora}">Cancelar</button>
-              </div>`).join('')}
+            ${mis.map(t => {
+              const esCambio = cambiando && cambiando.fecha === t.fecha && Number(cambiando.hora) === Number(t.hora)
+              const valor = `${t.fecha}|${t.hora}`
+              return `
+              <div class="mi-turno${esCambio ? ' cambiando' : ''}">
+                <div class="mt-fecha"><strong>${horaTxt(t.hora)}</strong> <span>${nombreDia(t.fecha)}</span>${t.origen === 'fijo' ? ' <span class="etq-fijo">FIJO</span>' : ''}</div>
+                ${t.modificable === false
+                  ? `<span class="mt-tarde">Faltan menos de ${agenda.horas_aviso} h: ya no se puede cambiar</span>`
+                  : `<div class="mt-botones">
+                      <button type="button" class="tr-boton" data-cambiar="${valor}">${esCambio ? 'Eligiendo…' : 'Cambiar'}</button>
+                      <button type="button" class="tr-boton cancelar" data-cancelar="${valor}">No voy</button>
+                    </div>`}
+              </div>`
+            }).join('')}
+          </div>` : ''}
+
+        ${cambiando ? `
+          <div class="tr-cambio" role="status">
+            <span>Elegí el día y el horario nuevo para tu turno de las <strong>${horaTxt(cambiando.hora)}</strong> de <strong>${nombreDia(cambiando.fecha)}</strong>.</span>
+            <button type="button" class="tr-boton cancelar" id="cancelarCambio">No cambiar</button>
           </div>` : ''}
 
         <div class="tr-dias" role="tablist" aria-label="Día">
@@ -3735,7 +3814,7 @@
         </div>
 
         ${tengoEseDia && agenda.max_por_dia <= 1 && futuras.length ? `
-          <div class="tr-aviso-dia">Ya tenés turno ${nombreDia(dia.fecha)} a las <strong>${mis.filter(t => t.fecha === dia.fecha).map(t => dosDig(t.hora) + ':00').join(', ')}</strong>. Para cambiar de horario, cancelá ese primero.</div>` : ''}
+          <div class="tr-aviso-dia">Ya tenés turno ${nombreDia(dia.fecha)} a las <strong>${mis.filter(t => t.fecha === dia.fecha).map(t => horaTxt(t.hora)).join(', ')}</strong>.${cambiando ? ' Elegí otro día, o cambiá primero ese turno.' : ' Si querés otro horario, tocá Cambiar.'}</div>` : ''}
 
         ${!dia.franjas.length
           ? `<div class="tr-cerrado">El gimnasio no toma turnos ${nombreDia(dia.fecha)}.</div>`
@@ -3746,12 +3825,23 @@
         <p class="tr-nota">
           ${pasadas && futuras.length ? 'Los horarios que ya pasaron no se muestran. ' : ''}
           ${agenda.max_por_dia == 1 ? 'Podés tener un turno por día. ' : `Podés tener hasta ${agenda.max_por_dia} turnos por día. `}
+          Cancelar o cambiar: ${textoAviso()} del turno.
           ${agenda.con_nombres ? 'Los demás te ven con el nombre que elegiste en Mis datos.' : ''}
         </p>`
 
       cont.querySelectorAll('[data-dia]').forEach(b => b.addEventListener('click', () => { diaElegido = b.dataset.dia; renderizarTurnos() }))
       cont.querySelectorAll('[data-reservar]').forEach(b => b.addEventListener('click', () => accionTurno(b, 'turnos_reservar')))
       cont.querySelectorAll('[data-cancelar]').forEach(b => b.addEventListener('click', () => accionTurno(b, 'turnos_cancelar')))
+      cont.querySelectorAll('[data-mover]').forEach(b => b.addEventListener('click', () => accionTurno(b, 'turnos_cambiar')))
+      cont.querySelectorAll('[data-cambiar]').forEach(b => b.addEventListener('click', () => {
+        const [fecha, hora] = b.dataset.cambiar.split('|')
+        const yaEra = cambiando && cambiando.fecha === fecha && Number(cambiando.hora) === Number(hora)
+        cambiando = yaEra ? null : { fecha, hora: Number(hora) }
+        renderizarTurnos()
+        if (cambiando) document.querySelector('.tr-cambio').scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }))
+      const cc = document.getElementById('cancelarCambio')
+      if (cc) cc.addEventListener('click', () => { cambiando = null; renderizarTurnos() })
     }
 
     function franjaHtml(f, dia, tengoEseDia, yo) {
@@ -3761,9 +3851,21 @@
       const nombres = f.nombres || []
       const max = 8
       const valor = `${dia.fecha}|${f.hora}`
+      const mio = f.mio ? miTurno(dia.fecha, f.hora) : null
+      const esOrigen = cambiando && cambiando.fecha === dia.fecha && Number(cambiando.hora) === Number(f.hora)
 
       let boton
-      if (f.mio) boton = `<button type="button" class="tr-boton cancelar" data-cancelar="${valor}">Estás anotado · Cancelar</button>`
+      if (cambiando) {
+        if (esOrigen) boton = '<button type="button" class="tr-boton" disabled>Tu turno actual</button>'
+        else if (f.mio) boton = '<button type="button" class="tr-boton" disabled>Ya estás anotado</button>'
+        else if (lleno) boton = '<button type="button" class="tr-boton" disabled>Completo</button>'
+        else if (tengoEseDia && agenda.max_por_dia <= 1) boton = ''
+        else boton = `<button type="button" class="tr-boton mover" data-mover="${valor}">Pasarme a este horario</button>`
+      } else if (f.mio) {
+        boton = mio && mio.modificable === false
+          ? '<button type="button" class="tr-boton" disabled>Estás anotado</button>'
+          : `<button type="button" class="tr-boton cancelar" data-cancelar="${valor}">Estás anotado · No voy</button>`
+      }
       else if (lleno) boton = '<button type="button" class="tr-boton" disabled>Completo</button>'
       else if (tengoEseDia && agenda.max_por_dia <= 1) boton = ''
       else boton = `<button type="button" class="tr-boton anotarme" data-reservar="${valor}">Anotarme</button>`
@@ -3779,7 +3881,7 @@
       return `
         <article class="tr-franja${f.mio ? ' mio' : ''}${lleno ? ' lleno' : ''}">
           <div class="tr-cab">
-            <span class="tr-hora">${dosDig(f.hora)}:00<small>a ${dosDig(f.hora + 1)}:00</small></span>
+            <span class="tr-hora">${horaTxt(f.hora)}<small>a ${horaTxt(f.hora + 1)}</small></span>
             <span class="tr-lugares${lleno ? ' lleno' : lugares <= Math.max(2, f.capacidad * 0.2) ? ' pocos' : ''}">
               ${lleno ? 'Completo' : `${lugares === 1 ? 'Queda 1 lugar' : `Quedan ${lugares}`}`} · ${f.anotados}/${f.capacidad}
             </span>
@@ -3791,11 +3893,15 @@
     }
 
     async function accionTurno(boton, funcion) {
-      const [fecha, hora] = (boton.dataset.reservar || boton.dataset.cancelar).split('|')
+      const [fecha, hora] = (boton.dataset.reservar || boton.dataset.cancelar || boton.dataset.mover).split('|')
       boton.disabled = true
       const texto = boton.textContent
-      boton.textContent = funcion === 'turnos_reservar' ? 'Anotando…' : 'Cancelando…'
-      const { error } = await db.rpc(funcion, { p_socio: socio.id, p_fecha: fecha, p_hora: Number(hora) })
+      boton.textContent = { turnos_reservar: 'Anotando…', turnos_cancelar: 'Liberando…', turnos_cambiar: 'Cambiando…' }[funcion]
+      const origen = cambiando
+      const args = funcion === 'turnos_cambiar'
+        ? { p_socio: socio.id, p_fecha: origen.fecha, p_hora: Number(origen.hora), p_fecha_nueva: fecha, p_hora_nueva: Number(hora) }
+        : { p_socio: socio.id, p_fecha: fecha, p_hora: Number(hora) }
+      const { error } = await db.rpc(funcion, args)
       if (error) {
         boton.disabled = false
         boton.textContent = texto
@@ -3803,13 +3909,19 @@
         await cargarTurnos()
         return
       }
-      mostrarAviso(funcion === 'turnos_reservar' ? 'Listo, quedaste anotado' : 'Turno cancelado', `${dosDig(hora)}:00 · ${nombreDia(fecha)}`)
+      if (funcion === 'turnos_cambiar') {
+        cambiando = null
+        diaElegido = fecha
+        mostrarAviso('Listo, cambiaste tu turno', `Ahora: ${dosDig(hora)}:00 · ${nombreDia(fecha)}`)
+      } else {
+        mostrarAviso(funcion === 'turnos_reservar' ? 'Listo, quedaste anotado' : 'Listo, liberaste tu lugar', `${dosDig(hora)}:00 · ${nombreDia(fecha)}`)
+      }
       await cargarTurnos()
     }
 
     function mostrarAvisoError(texto) {
       const el = document.createElement('div')
-      el.className = 'aviso record'
+      el.className = 'aviso error'
       el.setAttribute('role', 'alert')
       el.innerHTML = `<div><strong>No se pudo</strong><span>${escapar(texto)}</span></div>`
       document.body.appendChild(el)
