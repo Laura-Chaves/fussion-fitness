@@ -822,6 +822,7 @@
         icono: 'i-rutinas',
         items: [
           { nombre: 'Rutinas', desc: 'Armar la rutina de un socio y enviarle el link', href: 'rutinas.html', icono: 'i-rutinas' },
+          { nombre: 'Planificación semanal', desc: 'La rutina de la semana de cada nivel', href: 'planificacion.html', icono: 'i-rutinas' },
           { nombre: 'Plantillas de rutina', desc: 'Rutinas base por nivel', href: 'plantillas.html', icono: 'i-plantillas' },
           { nombre: 'Gym Levels', desc: 'Ranking del mes, niveles e insignias', href: 'gym-levels.html', icono: 'i-trofeo' },
           { nombre: 'Turnos', desc: 'Quiénes se anotaron por hora y cupos', href: 'turnos.html', icono: 'i-turnos' }
@@ -873,9 +874,10 @@
 
       const hora = ahora.getHours()
       const saludo = hora < 12 ? 'Buen día' : hora < 20 ? 'Buenas tardes' : 'Buenas noches'
-      const primerNombre = (nombreAdmin || '').trim().split(/\s+/)[0]
+      // El nombre completo del administrador, tal como está cargado (ej.: "Matías y Mario")
+      const nombre = (nombreAdmin || '').trim()
 
-      document.getElementById('saludo').textContent = primerNombre ? `${saludo}, ${primerNombre}` : saludo
+      document.getElementById('saludo').textContent = nombre ? `${saludo}, ${nombre}` : saludo
       document.getElementById('adminNombre').textContent = nombreAdmin || 'Administrador'
     }
 
